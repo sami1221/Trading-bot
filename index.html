@@ -2,51 +2,37 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>2WIN HUNTER PRO</title>
+    <title>2WIN HUNTER CHART</title>
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
-        #chart_container { width: 100vw; height: 100vh; }
+        body { margin: 0; padding: 0; background-color: #ffffff; }
+        #chart { width: 100vw; height: 100vh; }
     </style>
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
 </head>
 <body>
+    <div id="chart"></div>
+    <script>
+        const chart = LightweightCharts.createChart(document.getElementById('chart'), {
+            width: window.innerWidth,
+            height: window.innerHeight,
+            layout: { backgroundColor: '#ffffff', textColor: '#333' },
+            grid: { vertLines: { color: '#eee' }, horzLines: { color: '#eee' } },
+        });
 
-<div id="chart_container"></div>
+        const candleSeries = chart.addCandlestickSeries({
+            upColor: '#000000', // Bullish በጥቁር
+            downColor: '#ff0000', // Bearish በቀይ
+            borderVisible: false,
+            wickUpColor: '#000000',
+            wickDownColor: '#ff0000',
+        });
 
-<script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-<script type="text/javascript">
-new TradingView.widget({
-  "container_id": "chart_container",
-  "autosize": true,
-  "symbol": "OANDA:XAUUSD",
-  "interval": "D",
-  "timezone": "Etc/UTC",
-  "theme": "light", // ነጭ ዳራ
-  "style": "1",
-  "locale": "en",
-  "toolbar_bg": "#f1f3f6",
-  "enable_publishing": false,
-  "allow_symbol_change": true,
-  "hide_top_toolbar": false,
-  "hide_side_toolbar": false,
-  "save_image": false,
-  // የተጠየቁት የገበያ መረጃዎች
-  "symbols": [
-      { "description": "Gold", "symbol": "OANDA:XAUUSD" },
-      { "description": "EUR/USD", "symbol": "FX:EURUSD" },
-      { "description": "GBP/USD", "symbol": "FX:GBPUSD" },
-      { "description": "USD/JPY", "symbol": "FX:USDJPY" },
-      { "description": "GBP/JPY", "symbol": "FX:GBPJPY" },
-      { "description": "Bitcoin", "symbol": "BITSTAMP:BTCUSD" }
-  ],
-  // የቀለም ቅንብር (Overrides)
-  "overrides": {
-    "mainSeriesProperties.candleStyle.upColor": "#000000",   // Bullish በጥቁር
-    "mainSeriesProperties.candleStyle.downColor": "#FF0000", // Bearish በቀይ
-    "paneProperties.background": "#ffffff"                  // ዳራ በነጭ
-  },
-  "support_host": "https://www.tradingview.com"
-});
-</script>
+        // የቻርት መረጃ (ይህንን የፈለጉትን ዳታ ማስገባት ይችላሉ)
+        candleSeries.setData([
+            { time: '2026-05-25', open: 1.08, high: 1.09, low: 1.07, close: 1.085 },
+            { time: '2026-05-26', open: 1.085, high: 1.10, low: 1.08, close: 1.09 },
+            { time: '2026-05-27', open: 1.09, high: 1.11, low: 1.085, close: 1.105 }
+        ]);
+    </script>
 </body>
 </html>
