@@ -2,9 +2,10 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>2WIN HUNTER CHART</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>2WIN HUNTER</title>
     <style>
-        body { margin: 0; padding: 0; background-color: #ffffff; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #ffffff; }
         #chart { width: 100vw; height: 100vh; }
     </style>
     <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
@@ -12,6 +13,7 @@
 <body>
     <div id="chart"></div>
     <script>
+        // ቻርቱን መፍጠር
         const chart = LightweightCharts.createChart(document.getElementById('chart'), {
             width: window.innerWidth,
             height: window.innerHeight,
@@ -19,19 +21,19 @@
             grid: { vertLines: { color: '#eee' }, horzLines: { color: '#eee' } },
         });
 
+        // የሻማ አይነት እና ቀለም
         const candleSeries = chart.addCandlestickSeries({
-            upColor: '#000000', // Bullish በጥቁር
-            downColor: '#ff0000', // Bearish በቀይ
-            borderVisible: false,
+            upColor: '#000000',   // Bullish = ጥቁር
+            downColor: '#ff0000', // Bearish = ቀይ
             wickUpColor: '#000000',
             wickDownColor: '#ff0000',
         });
 
-        // የቻርት መረጃ (ይህንን የፈለጉትን ዳታ ማስገባት ይችላሉ)
+        // የገበያ መረጃ (እዚህ ቦታ የፈለጉትን የገበያ መረጃ በ API ማስገባት ይችላሉ)
         candleSeries.setData([
-            { time: '2026-05-25', open: 1.08, high: 1.09, low: 1.07, close: 1.085 },
-            { time: '2026-05-26', open: 1.085, high: 1.10, low: 1.08, close: 1.09 },
-            { time: '2026-05-27', open: 1.09, high: 1.11, low: 1.085, close: 1.105 }
+            { time: '2026-05-25', open: 4450, high: 4460, low: 4430, close: 4453 },
+            { time: '2026-05-26', open: 4453, high: 4470, low: 4440, close: 4465 },
+            { time: '2026-05-27', open: 4465, high: 4480, low: 4450, close: 4475 }
         ]);
     </script>
 </body>
