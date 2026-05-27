@@ -13,6 +13,7 @@
 <body>
     <div id="chart"></div>
     <script>
+        // ቻርቱን መፍጠር
         const chart = LightweightCharts.createChart(document.getElementById('chart'), {
             width: window.innerWidth,
             height: window.innerHeight,
@@ -20,6 +21,7 @@
             grid: { vertLines: { color: '#f0f0f0' }, horzLines: { color: '#f0f0f0' } },
         });
 
+        // የሻማ ቅንብር
         const candleSeries = chart.addCandlestickSeries({
             upColor: '#000000',
             downColor: '#ff0000',
