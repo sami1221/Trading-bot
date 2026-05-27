@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>2WIN HUNTER</title>
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #ffffff; }
@@ -13,23 +13,22 @@
 <body>
     <div id="chart"></div>
     <script>
-        // ቻርቱን መፍጠር
         const chart = LightweightCharts.createChart(document.getElementById('chart'), {
             width: window.innerWidth,
             height: window.innerHeight,
             layout: { backgroundColor: '#ffffff', textColor: '#333' },
-            grid: { vertLines: { color: '#eee' }, horzLines: { color: '#eee' } },
+            grid: { vertLines: { color: '#f0f0f0' }, horzLines: { color: '#f0f0f0' } },
         });
 
-        // የሻማ አይነት እና ቀለም
         const candleSeries = chart.addCandlestickSeries({
-            upColor: '#000000',   // Bullish = ጥቁር
-            downColor: '#ff0000', // Bearish = ቀይ
+            upColor: '#000000',
+            downColor: '#ff0000',
+            borderVisible: false,
             wickUpColor: '#000000',
             wickDownColor: '#ff0000',
         });
 
-        // የገበያ መረጃ (እዚህ ቦታ የፈለጉትን የገበያ መረጃ በ API ማስገባት ይችላሉ)
+        // የናሙና መረጃ
         candleSeries.setData([
             { time: '2026-05-25', open: 4450, high: 4460, low: 4430, close: 4453 },
             { time: '2026-05-26', open: 4453, high: 4470, low: 4440, close: 4465 },
