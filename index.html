@@ -1,41 +1,31 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2WIN HUNTER</title>
-    <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #ffffff; }
-        #chart { width: 100vw; height: 100vh; }
-    </style>
-    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+    <meta charset="utf-8">
+    <title>2WIN HUNTER Chart</title>
 </head>
-<body>
-    <div id="chart"></div>
-    <script>
-        // ቻርቱን መፍጠር
-        const chart = LightweightCharts.createChart(document.getElementById('chart'), {
-            width: window.innerWidth,
-            height: window.innerHeight,
-            layout: { backgroundColor: '#ffffff', textColor: '#333' },
-            grid: { vertLines: { color: '#f0f0f0' }, horzLines: { color: '#f0f0f0' } },
-        });
+<body style="margin:0; padding:0;">
 
-        // የሻማ ቅንብር
-        const candleSeries = chart.addCandlestickSeries({
-            upColor: '#000000',
-            downColor: '#ff0000',
-            borderVisible: false,
-            wickUpColor: '#000000',
-            wickDownColor: '#ff0000',
-        });
-
-        // የናሙና መረጃ
-        candleSeries.setData([
-            { time: '2026-05-25', open: 4450, high: 4460, low: 4430, close: 4453 },
-            { time: '2026-05-26', open: 4453, high: 4470, low: 4440, close: 4465 },
-            { time: '2026-05-27', open: 4465, high: 4480, low: 4450, close: 4475 }
-        ]);
+  <div class="tradingview-widget-container" style="height:100vh;width:100%">
+    <div class="tradingview-widget-container__widget" style="height:calc(100% - 32px);width:100%"></div>
+    
+    <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
+    {
+      "autosize": true,
+      "symbol": "FX:EURUSD",
+      "interval": "D",
+      "timezone": "Etc/UTC",
+      "theme": "dark",
+      "style": "1",
+      "locale": "en",
+      "hide_top_toolbar": false,
+      "hide_side_toolbar": false,
+      "save_image": false,
+      "allow_symbol_change": true,
+      "support_host": "https://www.tradingview.com"
+    }
     </script>
+    
+  </div>
 </body>
 </html>
