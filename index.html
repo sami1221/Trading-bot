@@ -1,709 +1,516 @@
 <!DOCTYPE html>
-<html lang="am">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>OX Game</title>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Russo+One&family=Noto+Sans+Ethiopic:wght@400;700;900&display=swap');
-
-  :root {
-    --bg: #0a0a0f;
-    --surface: #13131a;
-    --card: #1a1a26;
-    --border: #2a2a40;
-    --x-color: #ff4d6d;
-    --o-color: #00d4ff;
-    --x-glow: rgba(255,77,109,0.4);
-    --o-glow: rgba(0,212,255,0.4);
-    --gold: #ffd700;
-    --text: #e8e8f0;
-    --muted: #6b6b8a;
-  }
-
-  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Noto Sans Ethiopic', sans-serif;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 16px;
-    overflow: hidden;
-    position: relative;
-  }
-
-  body::before {
-    content:'';
-    position:fixed;
-    inset:0;
-    background:
-      radial-gradient(ellipse 60% 40% at 20% 10%, rgba(255,77,109,0.08) 0%, transparent 60%),
-      radial-gradient(ellipse 60% 40% at 80% 90%, rgba(0,212,255,0.08) 0%, transparent 60%);
-    pointer-events:none;
-    z-index:0;
-  }
-
-  .container {
-    position:relative;
-    z-index:1;
-    width:100%;
-    max-width:360px;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    gap:20px;
-  }
-
-  /* Header */
-  .header {
-    text-align:center;
-  }
-  .title {
-    font-family:'Russo One', sans-serif;
-    font-size:2.4rem;
-    letter-spacing:0.15em;
-    background: linear-gradient(135deg, var(--x-color), var(--o-color));
-    -webkit-background-clip:text;
-    -webkit-text-fill-color:transparent;
-    background-clip:text;
-    text-shadow:none;
-    filter: drop-shadow(0 0 20px rgba(255,77,109,0.3));
-  }
-  .subtitle {
-    font-size:0.75rem;
-    color: var(--muted);
-    letter-spacing:0.2em;
-    text-transform:uppercase;
-    margin-top:2px;
-  }
-
-  /* Score board */
-  .scoreboard {
-    display:grid;
-    grid-template-columns: 1fr auto 1fr;
-    gap:8px;
-    width:100%;
-    align-items:center;
-  }
-  .score-card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius:14px;
-    padding:12px 8px;
-    text-align:center;
-    transition: all 0.3s ease;
-    position:relative;
-    overflow:hidden;
-  }
-  .score-card::before {
-    content:'';
-    position:absolute;
-    top:0; left:0; right:0;
-    height:2px;
-    border-radius:2px;
-  }
-  .score-card.x-card::before { background: var(--x-color); }
-  .score-card.o-card::before { background: var(--o-color); }
-  .score-card.active-x {
-    border-color: var(--x-color);
-    box-shadow: 0 0 20px var(--x-glow);
-  }
-  .score-card.active-o {
-    border-color: var(--o-color);
-    box-shadow: 0 0 20px var(--o-glow);
-  }
-  .score-player {
-    font-size:1.4rem;
-    font-weight:900;
-    display:block;
-    margin-bottom:4px;
-  }
-  .score-player.x { color: var(--x-color); }
-  .score-player.o { color: var(--o-color); }
-  .score-label { font-size:0.65rem; color:var(--muted); letter-spacing:0.1em; text-transform:uppercase; }
-  .score-num {
-    font-family:'Russo One', sans-serif;
-    font-size:1.6rem;
-    display:block;
-    margin-top:4px;
-  }
-  .vs-badge {
-    font-family:'Russo One', sans-serif;
-    font-size:0.9rem;
-    color:var(--muted);
-    background:var(--card);
-    border:1px solid var(--border);
-    border-radius:50%;
-    width:36px;
-    height:36px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-  }
-
-  /* Status */
-  .status-bar {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius:50px;
-    padding:10px 24px;
-    font-size:0.85rem;
-    font-weight:700;
-    letter-spacing:0.05em;
-    text-align:center;
-    min-width:220px;
-    transition: all 0.4s ease;
-  }
-  .status-bar.x-turn { border-color:var(--x-color); color:var(--x-color); box-shadow:0 0 15px var(--x-glow); }
-  .status-bar.o-turn { border-color:var(--o-color); color:var(--o-color); box-shadow:0 0 15px var(--o-glow); }
-  .status-bar.win-x { border-color:var(--gold); color:var(--gold); box-shadow:0 0 25px rgba(255,215,0,0.4); }
-  .status-bar.win-o { border-color:var(--gold); color:var(--gold); box-shadow:0 0 25px rgba(255,215,0,0.4); }
-  .status-bar.draw { border-color:var(--muted); color:var(--muted); }
-
-  /* Board */
-  .board-wrap {
-    position:relative;
-    width:100%;
-  }
-  .board {
-    display:grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap:10px;
-    width:100%;
-  }
-  .cell {
-    aspect-ratio:1;
-    background: var(--card);
-    border: 1.5px solid var(--border);
-    border-radius:16px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-family:'Russo One', sans-serif;
-    font-size:2.4rem;
-    cursor:pointer;
-    transition: all 0.15s ease;
-    position:relative;
-    overflow:hidden;
-    user-select:none;
-  }
-  .cell:active:not(.taken) {
-    transform:scale(0.92);
-  }
-  .cell:not(.taken):hover {
-    border-color: var(--border);
-    background: #1f1f30;
-  }
-  .cell.x {
-    color: var(--x-color);
-    border-color: rgba(255,77,109,0.4);
-    background: rgba(255,77,109,0.06);
-    text-shadow: 0 0 20px var(--x-color);
-    animation: popIn 0.25s cubic-bezier(0.34,1.56,0.64,1);
-  }
-  .cell.o {
-    color: var(--o-color);
-    border-color: rgba(0,212,255,0.4);
-    background: rgba(0,212,255,0.06);
-    text-shadow: 0 0 20px var(--o-color);
-    animation: popIn 0.25s cubic-bezier(0.34,1.56,0.64,1);
-  }
-  .cell.win-cell.x {
-    background: rgba(255,77,109,0.18);
-    border-color: var(--x-color);
-    box-shadow: 0 0 25px var(--x-glow), inset 0 0 20px var(--x-glow);
-    animation: winPulse 0.6s ease forwards;
-  }
-  .cell.win-cell.o {
-    background: rgba(0,212,255,0.18);
-    border-color: var(--o-color);
-    box-shadow: 0 0 25px var(--o-glow), inset 0 0 20px var(--o-glow);
-    animation: winPulse 0.6s ease forwards;
-  }
-  .cell.taken { cursor:default; }
-
-  @keyframes popIn {
-    0% { transform:scale(0.5); opacity:0; }
-    100% { transform:scale(1); opacity:1; }
-  }
-  @keyframes winPulse {
-    0% { transform:scale(1); }
-    40% { transform:scale(1.08); }
-    100% { transform:scale(1); }
-  }
-
-  /* Buttons */
-  .btn-row {
-    display:flex;
-    gap:10px;
-    width:100%;
-  }
-  .btn {
-    flex:1;
-    padding:13px;
-    border:none;
-    border-radius:14px;
-    font-family:'Noto Sans Ethiopic', sans-serif;
-    font-size:0.85rem;
-    font-weight:700;
-    cursor:pointer;
-    transition: all 0.2s ease;
-    letter-spacing:0.02em;
-  }
-  .btn:active { transform:scale(0.96); }
-  .btn-restart {
-    background: linear-gradient(135deg, var(--x-color), #ff8fab);
-    color:#fff;
-    box-shadow: 0 4px 20px var(--x-glow);
-  }
-  .btn-restart:hover { box-shadow: 0 4px 30px var(--x-glow); }
-  .btn-mode {
-    background: var(--card);
-    color: var(--text);
-    border:1.5px solid var(--border);
-  }
-  .btn-mode:hover { border-color:var(--o-color); color:var(--o-color); }
-
-  /* Mode selector */
-  .mode-panel {
-    display:none;
-    flex-direction:column;
-    gap:8px;
-    width:100%;
-    animation: fadeIn 0.2s ease;
-  }
-  .mode-panel.open { display:flex; }
-  .mode-label {
-    font-size:0.7rem;
-    color:var(--muted);
-    text-transform:uppercase;
-    letter-spacing:0.15em;
-    text-align:center;
-  }
-  .mode-options {
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:8px;
-  }
-  .mode-btn {
-    padding:10px;
-    background:var(--card);
-    border:1.5px solid var(--border);
-    border-radius:12px;
-    color:var(--text);
-    font-family:'Noto Sans Ethiopic', sans-serif;
-    font-size:0.8rem;
-    font-weight:700;
-    cursor:pointer;
-    transition:all 0.2s;
-    text-align:center;
-  }
-  .mode-btn:active { transform:scale(0.95); }
-  .mode-btn.selected {
-    border-color:var(--o-color);
-    color:var(--o-color);
-    background:rgba(0,212,255,0.08);
-    box-shadow:0 0 12px var(--o-glow);
-  }
-
-  @keyframes fadeIn {
-    from { opacity:0; transform:translateY(-8px); }
-    to { opacity:1; transform:translateY(0); }
-  }
-
-  /* Win overlay */
-  .win-overlay {
-    display:none;
-    position:fixed;
-    inset:0;
-    background:rgba(0,0,0,0.7);
-    backdrop-filter:blur(6px);
-    z-index:100;
-    align-items:center;
-    justify-content:center;
-    animation:fadeIn 0.3s ease;
-  }
-  .win-overlay.show { display:flex; }
-  .win-modal {
-    background:var(--card);
-    border:1.5px solid var(--border);
-    border-radius:24px;
-    padding:32px 28px;
-    text-align:center;
-    max-width:280px;
-    width:90%;
-    animation:slideUp 0.35s cubic-bezier(0.34,1.56,0.64,1);
-  }
-  @keyframes slideUp {
-    from { transform:translateY(40px) scale(0.9); opacity:0; }
-    to { transform:translateY(0) scale(1); opacity:1; }
-  }
-  .win-emoji { font-size:3.5rem; margin-bottom:12px; display:block; }
-  .win-title {
-    font-family:'Russo One', sans-serif;
-    font-size:1.5rem;
-    margin-bottom:6px;
-  }
-  .win-title.x { color:var(--x-color); text-shadow:0 0 20px var(--x-color); }
-  .win-title.o { color:var(--o-color); text-shadow:0 0 20px var(--o-color); }
-  .win-title.draw { color:var(--muted); }
-  .win-sub {
-    font-size:0.8rem;
-    color:var(--muted);
-    margin-bottom:20px;
-  }
-  .win-play-btn {
-    width:100%;
-    padding:14px;
-    background:linear-gradient(135deg, var(--x-color), var(--o-color));
-    border:none;
-    border-radius:14px;
-    color:#fff;
-    font-family:'Noto Sans Ethiopic', sans-serif;
-    font-size:0.95rem;
-    font-weight:700;
-    cursor:pointer;
-    transition:all 0.2s;
-  }
-  .win-play-btn:active { transform:scale(0.97); }
-
-  /* AI thinking */
-  .thinking {
-    position:absolute;
-    inset:0;
-    background:rgba(10,10,15,0.5);
-    border-radius:16px;
-    display:none;
-    align-items:center;
-    justify-content:center;
-    z-index:10;
-    font-size:0.85rem;
-    color:var(--o-color);
-    letter-spacing:0.1em;
-    backdrop-filter:blur(2px);
-  }
-  .thinking.show { display:flex; }
-  .dots span {
-    animation:blink 1.2s infinite;
-    font-size:1.2rem;
-  }
-  .dots span:nth-child(2){animation-delay:0.2s}
-  .dots span:nth-child(3){animation-delay:0.4s}
-  @keyframes blink{ 0%,80%,100%{opacity:0} 40%{opacity:1} }
-
-  /* Draw line */
-  .win-line {
-    position:absolute;
-    pointer-events:none;
-    z-index:5;
-  }
-</style>
-</head>
-<body>
-
-<div class="container">
-  <div class="header">
-    <div class="title">OX GAME</div>
-    <div class="subtitle">የኦኤክስ ጌም</div>
-  </div>
-
-  <div class="scoreboard">
-    <div class="score-card x-card" id="scoreX">
-      <span class="score-player x">✗</span>
-      <span class="score-label">Player X</span>
-      <span class="score-num" id="numX">0</span>
-    </div>
-    <div class="vs-badge">VS</div>
-    <div class="score-card o-card" id="scoreO">
-      <span class="score-player o">○</span>
-      <span class="score-label" id="oLabel">Player O</span>
-      <span class="score-num" id="numO">0</span>
-    </div>
-  </div>
-
-  <div class="status-bar x-turn" id="status">X ተራ ነው</div>
-
-  <div class="board-wrap">
-    <div class="board" id="board">
-      <div class="cell" data-i="0"></div>
-      <div class="cell" data-i="1"></div>
-      <div class="cell" data-i="2"></div>
-      <div class="cell" data-i="3"></div>
-      <div class="cell" data-i="4"></div>
-      <div class="cell" data-i="5"></div>
-      <div class="cell" data-i="6"></div>
-      <div class="cell" data-i="7"></div>
-      <div class="cell" data-i="8"></div>
-    </div>
-    <div class="thinking" id="thinking">
-      AI እያሰበ<span class="dots"><span>.</span><span>.</span><span>.</span></span>
-    </div>
-  </div>
-
-  <div class="btn-row">
-    <button class="btn btn-restart" onclick="restartGame()">🔄 እንደገና</button>
-    <button class="btn btn-mode" onclick="toggleMode()">⚙️ ሁናቴ</button>
-  </div>
-
-  <div class="mode-panel" id="modePanel">
-    <div class="mode-label">የጨዋታ ሁናቴ ምረጥ</div>
-    <div class="mode-options">
-      <button class="mode-btn selected" id="mode2p" onclick="setMode('2p')">👥 2 ተጫዋቾች</button>
-      <button class="mode-btn" id="modeAI" onclick="setMode('ai')">🤖 AI ጋር</button>
-    </div>
-    <div class="mode-label" id="diffLabel" style="display:none">የ AI ደረጃ</div>
-    <div class="mode-options" id="diffOptions" style="display:none">
-      <button class="mode-btn selected" id="diffEasy" onclick="setDiff('easy')">😊 ቀላል</button>
-      <button class="mode-btn" id="diffHard" onclick="setDiff('hard')">💀 ከባድ</button>
-    </div>
-  </div>
-</div>
-
-<!-- Win Modal -->
-<div class="win-overlay" id="winOverlay">
-  <div class="win-modal">
-    <span class="win-emoji" id="winEmoji">🏆</span>
-    <div class="win-title" id="winTitle">X አሸነፈ!</div>
-    <div class="win-sub" id="winSub">እናመሰግናለን!</div>
-    <button class="win-play-btn" onclick="closeOverlay()">🔄 እንደገና ጫወት</button>
-  </div>
-</div>
-
-<script>
-// Init Telegram
-let tg = window.Telegram?.WebApp;
-if (tg) {
-  tg.ready();
-  tg.expand();
-  tg.setHeaderColor('#0a0a0f');
-  tg.setBackgroundColor('#0a0a0f');
-}
-
-// State
-let board = Array(9).fill('');
-let current = 'X';
-let gameOver = false;
-let mode = '2p'; // '2p' or 'ai'
-let diff = 'easy';
-let scores = { X: 0, O: 0 };
-
-const wins = [
-  [0,1,2],[3,4,5],[6,7,8],
-  [0,3,6],[1,4,7],[2,5,8],
-  [0,4,8],[2,4,6]
-];
-
-// Init
-document.querySelectorAll('.cell').forEach(cell => {
-  cell.addEventListener('click', () => handleClick(+cell.dataset.i));
-});
-
-function handleClick(i) {
-  if (gameOver || board[i]) return;
-  if (mode === 'ai' && current === 'O') return;
-  makeMove(i, current);
-}
-
-function makeMove(i, player) {
-  board[i] = player;
-  const cell = document.querySelector(`[data-i="${i}"]`);
-  cell.textContent = player === 'X' ? '✗' : '○';
-  cell.classList.add(player.toLowerCase(), 'taken');
-
-  const result = checkWin();
-  if (result) {
-    endGame(result);
-    return;
-  }
-  if (board.every(c => c)) {
-    endGame('draw');
-    return;
-  }
-
-  current = current === 'X' ? 'O' : 'X';
-  updateStatus();
-
-  if (mode === 'ai' && current === 'O' && !gameOver) {
-    document.getElementById('thinking').classList.add('show');
-    setTimeout(aiMove, 500 + Math.random()*400);
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gold Signal</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { background: #090a0f; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
+{
+  "name": "gold-signal-app",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.2.0",
+    "vite": "^5.0.0"
   }
 }
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
 
-function aiMove() {
-  document.getElementById('thinking').classList.remove('show');
-  if (gameOver) return;
-  let idx = diff === 'hard' ? bestMove() : easyMove();
-  makeMove(idx, 'O');
+export default defineConfig({
+  plugins: [react()],
+  base: './',
+})
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import App from './App.jsx'
+
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+)
+import { useState, useEffect, useRef, useCallback } from "react";
+
+const DERIV_WS_URL = "wss://ws.binaryws.com/websockets/v3?app_id=33s7rhCDcl3jz28FnVQ7w7";
+const API_TOKEN = "pat_ce6be0f36df7c9a3f154ec97af774967bfb59f2aa17949d889bf11222e1f466db";
+const SYMBOL = "frxXAUUSD";
+
+function calcEMA(values, period) {
+  if (values.length < period) return null;
+  const k = 2 / (period + 1);
+  let ema = values.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  for (let i = period; i < values.length; i++) ema = values[i] * k + ema * (1 - k);
+  return ema;
 }
 
-function easyMove() {
-  // 50% random, 50% smart
-  if (Math.random() < 0.45) {
-    const empty = board.map((v,i) => v ? null : i).filter(v => v !== null);
-    return empty[Math.floor(Math.random()*empty.length)];
+function calcRSI(closes, period = 14) {
+  if (closes.length < period + 1) return null;
+  let gains = 0, losses = 0;
+  for (let i = closes.length - period; i < closes.length; i++) {
+    const d = closes[i] - closes[i - 1];
+    if (d > 0) gains += d; else losses -= d;
   }
-  return bestMove();
+  const avgG = gains / period, avgL = losses / period;
+  return avgL === 0 ? 100 : 100 - 100 / (1 + avgG / avgL);
 }
 
-function bestMove() {
-  // try win
-  for (let i = 0; i < 9; i++) {
-    if (!board[i]) {
-      board[i] = 'O';
-      if (checkWin() === 'O') { board[i] = ''; return i; }
-      board[i] = '';
+function findSwings(candles, left = 3, right = 3) {
+  const highs = [], lows = [];
+  for (let i = left; i < candles.length - right; i++) {
+    let isH = true, isL = true;
+    for (let j = i - left; j <= i + right; j++) {
+      if (j === i) continue;
+      if (candles[j].high >= candles[i].high) isH = false;
+      if (candles[j].low <= candles[i].low) isL = false;
     }
+    if (isH) highs.push({ price: candles[i].high, index: i });
+    if (isL) lows.push({ price: candles[i].low, index: i });
   }
-  // block
-  for (let i = 0; i < 9; i++) {
-    if (!board[i]) {
-      board[i] = 'X';
-      if (checkWin() === 'X') { board[i] = ''; return i; }
-      board[i] = '';
-    }
-  }
-  // minimax lite
-  if (board[4] === '') return 4;
-  const corners = [0,2,6,8].filter(i => !board[i]);
-  if (corners.length) return corners[Math.floor(Math.random()*corners.length)];
-  const empty = board.map((v,i) => v ? null : i).filter(v => v !== null);
-  return empty[Math.floor(Math.random()*empty.length)];
+  return { highs, lows };
 }
 
-function checkWin() {
-  for (let [a,b,c] of wins) {
-    if (board[a] && board[a] === board[b] && board[b] === board[c]) {
-      return board[a];
-    }
+function detectStructure(highs, lows) {
+  let bias = "NEUTRAL", event = null;
+  if (highs.length >= 2) {
+    const l = highs[highs.length - 1], p = highs[highs.length - 2];
+    if (l.price > p.price) { bias = "BULLISH"; event = "BOS ↑"; }
+    else if (l.price < p.price) { bias = "BEARISH"; event = "CHOCH ↓"; }
   }
-  return null;
+  if (lows.length >= 2) {
+    const l = lows[lows.length - 1], p = lows[lows.length - 2];
+    if (l.price < p.price && bias !== "BULLISH") { bias = "BEARISH"; event = "BOS ↓"; }
+    else if (l.price > p.price) { bias = "BULLISH"; event = "CHOCH ↑"; }
+  }
+  return { bias, event };
 }
 
-function endGame(result) {
-  gameOver = true;
-  document.getElementById('thinking').classList.remove('show');
-
-  if (result !== 'draw') {
-    scores[result]++;
-    document.getElementById('numX').textContent = scores.X;
-    document.getElementById('numO').textContent = scores.O;
-    highlightWin(result);
-    setTimeout(() => showOverlay(result), 600);
-  } else {
-    showOverlay('draw');
+function findOrderBlocks(candles) {
+  const obs = [];
+  for (let i = 3; i < candles.length - 2; i++) {
+    const c = candles[i], nx = candles[i + 1];
+    const body = Math.abs(c.close - c.open);
+    const nxBody = Math.abs(nx.close - nx.open);
+    if (c.close < c.open && nx.close > nx.open && nxBody > body * 1.4)
+      obs.push({ type: "BULL", top: c.open, bottom: c.close, index: i });
+    if (c.close > c.open && nx.close < nx.open && nxBody > body * 1.4)
+      obs.push({ type: "BEAR", top: c.close, bottom: c.open, index: i });
   }
-
-  const statusEl = document.getElementById('status');
-  if (result === 'draw') {
-    statusEl.textContent = '🤝 አቻ ነው!';
-    statusEl.className = 'status-bar draw';
-  } else {
-    statusEl.textContent = `🏆 ${result} አሸነፈ!`;
-    statusEl.className = `status-bar win-${result.toLowerCase()}`;
-  }
+  return obs.slice(-5);
 }
 
-function highlightWin(winner) {
-  for (let [a,b,c] of wins) {
-    if (board[a] === winner && board[b] === winner && board[c] === winner) {
-      [a,b,c].forEach(i => {
-        const cell = document.querySelector(`[data-i="${i}"]`);
-        cell.classList.add('win-cell');
-      });
-      break;
-    }
+function findFVGs(candles) {
+  const fvgs = [];
+  for (let i = 1; i < candles.length - 1; i++) {
+    if (candles[i + 1].low > candles[i - 1].high)
+      fvgs.push({ type: "BULL", top: candles[i + 1].low, bottom: candles[i - 1].high });
+    if (candles[i + 1].high < candles[i - 1].low)
+      fvgs.push({ type: "BEAR", top: candles[i - 1].low, bottom: candles[i + 1].high });
   }
+  return fvgs.slice(-3);
 }
 
-function showOverlay(result) {
-  const overlay = document.getElementById('winOverlay');
-  const emoji = document.getElementById('winEmoji');
-  const title = document.getElementById('winTitle');
-  const sub = document.getElementById('winSub');
-  const titleEl = document.getElementById('winTitle');
-
-  if (result === 'draw') {
-    emoji.textContent = '🤝';
-    title.textContent = 'አቻ ነው!';
-    title.className = 'win-title draw';
-    sub.textContent = 'ምንም አልተሸነፈም!';
-  } else {
-    emoji.textContent = result === 'X' ? '🔥' : '✨';
-    const name = mode === 'ai' && result === 'O' ? 'AI' : result;
-    title.textContent = `${name} አሸነፈ! 🏆`;
-    title.className = `win-title ${result.toLowerCase()}`;
-    sub.textContent = result === 'X' ? 'አስደናቂ! ቀጥል!' : (mode === 'ai' ? 'AI አሸነፈ! ሞክር!' : 'ቀጥሉ!');
-  }
-  overlay.classList.add('show');
+function getPD(candles) {
+  const n = candles.slice(-50);
+  const hi = Math.max(...n.map(c => c.high));
+  const lo = Math.min(...n.map(c => c.low));
+  const cur = candles[candles.length - 1].close;
+  const pos = (cur - lo) / (hi - lo || 1);
+  return {
+    hi, lo,
+    pos: +(pos * 100).toFixed(1),
+    zone: pos > 0.618 ? "PREMIUM" : pos < 0.382 ? "DISCOUNT" : "EQUILIBRIUM"
+  };
 }
 
-function closeOverlay() {
-  document.getElementById('winOverlay').classList.remove('show');
-  restartGame();
-}
+function runSMC(candles) {
+  if (candles.length < 30) return null;
+  const closes = candles.map(c => c.close);
+  const current = closes[closes.length - 1];
+  const prev = closes[closes.length - 2];
+  const { highs, lows } = findSwings(candles);
+  const { bias, event } = detectStructure(highs, lows);
+  const obs = findOrderBlocks(candles);
+  const fvgs = findFVGs(candles);
+  const pd = getPD(candles);
+  const rsi = calcRSI(closes);
+  const ema9 = calcEMA(closes, 9);
+  const ema21 = calcEMA(closes, 21);
 
-function restartGame() {
-  board = Array(9).fill('');
-  current = 'X';
-  gameOver = false;
-  document.querySelectorAll('.cell').forEach(cell => {
-    cell.textContent = '';
-    cell.className = 'cell';
+  let bull = 0, bear = 0;
+  const reasons = [];
+
+  if (bias === "BULLISH") { bull += 3; reasons.push({ t: `${event} — Bullish Structure`, s: "bull" }); }
+  else if (bias === "BEARISH") { bear += 3; reasons.push({ t: `${event} — Bearish Structure`, s: "bear" }); }
+
+  obs.forEach(ob => {
+    if (ob.type === "BULL" && current >= ob.bottom - 0.5 && current <= ob.top + 0.5)
+      { bull += 3; reasons.push({ t: "Price at Bullish Order Block", s: "bull" }); }
+    if (ob.type === "BEAR" && current <= ob.top + 0.5 && current >= ob.bottom - 0.5)
+      { bear += 3; reasons.push({ t: "Price at Bearish Order Block", s: "bear" }); }
   });
-  document.getElementById('thinking').classList.remove('show');
-  updateStatus();
-  updateScoreHighlight();
+
+  fvgs.forEach(f => {
+    if (f.type === "BULL" && current >= f.bottom && current <= f.top)
+      { bull += 2; reasons.push({ t: "Inside Bullish FVG — Demand Zone", s: "bull" }); }
+    if (f.type === "BEAR" && current >= f.bottom && current <= f.top)
+      { bear += 2; reasons.push({ t: "Inside Bearish FVG — Supply Zone", s: "bear" }); }
+  });
+
+  if (pd.zone === "DISCOUNT") { bull += 2; reasons.push({ t: "Price in Discount Zone < 38.2%", s: "bull" }); }
+  if (pd.zone === "PREMIUM") { bear += 2; reasons.push({ t: "Price in Premium Zone > 61.8%", s: "bear" }); }
+
+  if (rsi !== null) {
+    if (rsi < 35) { bull += 1; reasons.push({ t: `RSI Oversold (${rsi.toFixed(1)})`, s: "bull" }); }
+    if (rsi > 65) { bear += 1; reasons.push({ t: `RSI Overbought (${rsi.toFixed(1)})`, s: "bear" }); }
+  }
+
+  if (ema9 && ema21) {
+    if (ema9 > ema21 && current > ema9) { bull += 1; reasons.push({ t: "EMA9 > EMA21 — Bullish Trend", s: "bull" }); }
+    if (ema9 < ema21 && current < ema9) { bear += 1; reasons.push({ t: "EMA9 < EMA21 — Bearish Trend", s: "bear" }); }
+  }
+
+  const total = bull + bear || 1;
+  const net = bull - bear;
+  const confidence = Math.round((Math.max(bull, bear) / total) * 100);
+  let signal = "WAIT";
+  if (net >= 3) signal = "BUY";
+  else if (net <= -3) signal = "SELL";
+
+  const atr = candles.slice(-14).reduce((acc, c, i, arr) => {
+    if (i === 0) return acc;
+    return acc + Math.max(c.high - c.low, Math.abs(c.high - arr[i-1].close), Math.abs(c.low - arr[i-1].close));
+  }, 0) / 13;
+
+  const sl  = signal === "BUY" ? +(current - atr * 1.5).toFixed(2) : +(current + atr * 1.5).toFixed(2);
+  const tp1 = signal === "BUY" ? +(current + atr * 2).toFixed(2)   : +(current - atr * 2).toFixed(2);
+  const tp2 = signal === "BUY" ? +(current + atr * 3.5).toFixed(2) : +(current - atr * 3.5).toFixed(2);
+
+  return {
+    signal, confidence, bull, bear, reasons,
+    entry: +current.toFixed(2), sl, tp1, tp2,
+    rr: +((atr * 2) / (atr * 1.5)).toFixed(2),
+    pd, rsi: rsi?.toFixed(1),
+    ema9: ema9?.toFixed(2), ema21: ema21?.toFixed(2),
+    change: +((current - prev) / prev * 100).toFixed(3),
+    atr: +atr.toFixed(2), obs, fvgs,
+  };
 }
 
-function updateStatus() {
-  const el = document.getElementById('status');
-  const name = mode === 'ai' && current === 'O' ? 'AI' : current;
-  el.textContent = `${current === 'X' ? '✗' : '○'} ${name} ተራ ነው`;
-  el.className = `status-bar ${current.toLowerCase()}-turn`;
-  updateScoreHighlight();
+function Sparkline({ prices, signal }) {
+  if (prices.length < 2) return null;
+  const w = 320, h = 60;
+  const min = Math.min(...prices), max = Math.max(...prices), range = max - min || 1;
+  const pts = prices.map((p, i) => `${(i / (prices.length - 1)) * w},${h - ((p - min) / range) * h}`).join(" ");
+  const col = signal === "BUY" ? "#00e676" : signal === "SELL" ? "#ff4444" : "#b8975a";
+  return (
+    <svg width="100%" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ display: "block" }}>
+      <defs>
+        <linearGradient id="sg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={col} stopOpacity="0.3" />
+          <stop offset="100%" stopColor={col} stopOpacity="0.02" />
+        </linearGradient>
+      </defs>
+      <polygon points={`0,${h} ${pts} ${w},${h}`} fill="url(#sg)" />
+      <polyline points={pts} fill="none" stroke={col} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
 }
 
-function updateScoreHighlight() {
-  const xCard = document.getElementById('scoreX');
-  const oCard = document.getElementById('scoreO');
-  xCard.className = 'score-card x-card' + (current === 'X' && !gameOver ? ' active-x' : '');
-  oCard.className = 'score-card o-card' + (current === 'O' && !gameOver ? ' active-o' : '');
-}
+export default function App() {
+  const [status, setStatus]       = useState("connecting");
+  const [ticks, setTicks]         = useState([]);
+  const [candles, setCandles]     = useState([]);
+  const [sig, setSig]             = useState(null);
+  const [livePrice, setLivePrice] = useState(null);
+  const [liveBid, setLiveBid]     = useState(null);
+  const [liveAsk, setLiveAsk]     = useState(null);
+  const [history, setHistory]     = useState([]);
+  const [tab, setTab]             = useState("signal");
+  const [tickCount, setTickCount] = useState(0);
+  const candleRef = useRef({ open: null, high: -Infinity, low: Infinity, close: null, count: 0, startTime: null });
+  const CANDLE_TICKS = 10;
 
-function toggleMode() {
-  const panel = document.getElementById('modePanel');
-  panel.classList.toggle('open');
-}
+  const buildCandle = useCallback((price, time) => {
+    const c = candleRef.current;
+    if (c.open === null) {
+      Object.assign(c, { open: price, high: price, low: price, close: price, count: 1, startTime: time });
+      return;
+    }
+    c.high = Math.max(c.high, price);
+    c.low  = Math.min(c.low, price);
+    c.close = price;
+    c.count++;
+    if (c.count >= CANDLE_TICKS) {
+      const newCandle = { open: c.open, high: c.high, low: c.low, close: c.close, time: c.startTime };
+      setCandles(prev => {
+        const updated = [...prev, newCandle].slice(-100);
+        const s = runSMC(updated);
+        if (s) {
+          setSig(s);
+          if (s.signal !== "WAIT")
+            setHistory(h => [{ ...s, time: new Date() }, ...h].slice(0, 15));
+        }
+        return updated;
+      });
+      Object.assign(c, { open: null, high: -Infinity, low: Infinity, close: null, count: 0 });
+    }
+  }, []);
 
-function setMode(m) {
-  mode = m;
-  document.getElementById('mode2p').classList.toggle('selected', m === '2p');
-  document.getElementById('modeAI').classList.toggle('selected', m === 'ai');
-  const diffLabel = document.getElementById('diffLabel');
-  const diffOpts = document.getElementById('diffOptions');
-  diffLabel.style.display = m === 'ai' ? 'block' : 'none';
-  diffOpts.style.display = m === 'ai' ? 'grid' : 'none';
-  document.getElementById('oLabel').textContent = m === 'ai' ? 'AI' : 'Player O';
-  scores = { X: 0, O: 0 };
-  document.getElementById('numX').textContent = 0;
-  document.getElementById('numO').textContent = 0;
-  restartGame();
-}
+  useEffect(() => {
+    let ws, pingInterval;
+    const connect = () => {
+      ws = new WebSocket(DERIV_WS_URL);
+      ws.onopen = () => {
+        setStatus("connecting");
+        ws.send(JSON.stringify({ authorize: API_TOKEN }));
+      };
+      ws.onmessage = (e) => {
+        const msg = JSON.parse(e.data);
+        if (msg.msg_type === "authorize") {
+          if (msg.error) { setStatus("error"); return; }
+          ws.send(JSON.stringify({ ticks: SYMBOL, subscribe: 1 }));
+          setStatus("live");
+        }
+        if (msg.msg_type === "tick") {
+          const t = msg.tick;
+          setLivePrice(t.quote);
+          setLiveBid(+(t.bid || t.quote - 0.12).toFixed(2));
+          setLiveAsk(+(t.ask || t.quote + 0.12).toFixed(2));
+          setTicks(prev => [...prev.slice(-299), t.quote]);
+          setTickCount(n => n + 1);
+          buildCandle(t.quote, t.epoch * 1000);
+        }
+      };
+      ws.onerror = () => setStatus("error");
+      ws.onclose = () => setTimeout(connect, 3000);
+      pingInterval = setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ ping: 1 }));
+      }, 30000);
+    };
+    connect();
+    return () => { clearInterval(pingInterval); ws?.close(); };
+  }, [buildCandle]);
 
-function setDiff(d) {
-  diff = d;
-  document.getElementById('diffEasy').classList.toggle('selected', d === 'easy');
-  document.getElementById('diffHard').classList.toggle('selected', d === 'hard');
-  restartGame();
-}
+  const sigColor = !sig ? "#b8975a" : sig.signal === "BUY" ? "#00e676" : sig.signal === "SELL" ? "#ff4444" : "#b8975a";
+  const sigBg = !sig ? "#13100a" : sig.signal === "BUY" ? "linear-gradient(135deg,#001a0d,#002210)" : sig.signal === "SELL" ? "linear-gradient(135deg,#1a0000,#220000)" : "linear-gradient(135deg,#13100a,#1a1408)";
 
-updateStatus();
-</script>
-</body>
-    </html>
+  return (
+    <div style={{ minHeight: "100vh", background: "#090a0f", color: "#d4c5a0", fontFamily: "'Share Tech Mono', monospace" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        .pulse { animation: p 1.5s ease-in-out infinite; }
+        @keyframes p { 0%,100%{opacity:1} 50%{opacity:0.25} }
+        .tab-b { cursor:pointer; padding:8px 14px; font-size:10px; letter-spacing:0.1em; border:none; background:none; transition:all 0.2s; font-family:'Share Tech Mono',monospace; color:inherit; }
+      `}</style>
+
+      <div style={{ background: "#0b0d14", borderBottom: "1px solid #b8975a22", padding: "14px 16px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div>
+            <div style={{ fontFamily: "'Orbitron'", fontSize: "22px", fontWeight: 900, color: "#b8975a", letterSpacing: "0.12em" }}>XAUUSD</div>
+            <div style={{ fontSize: "9px", color: "#4a3f2a", letterSpacing: "0.15em", marginTop: "2px" }}>GOLD · 5M · SMC · LIVE</div>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            {livePrice ? (
+              <>
+                <div style={{ fontFamily: "'Orbitron'", fontSize: "24px", fontWeight: 700, color: "#e8d5a0" }}>{livePrice.toFixed(2)}</div>
+                <div style={{ fontSize: "9px", color: "#4a3f2a", marginTop: "2px" }}>
+                  B: <span style={{ color: "#66cc88" }}>{liveBid}</span> · A: <span style={{ color: "#cc6666" }}>{liveAsk}</span>
+                </div>
+              </>
+            ) : (
+              <div style={{ fontFamily: "'Orbitron'", fontSize: "18px", color: "#3a3028" }}>---</div>
+            )}
+          </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "8px" }}>
+          <div style={{ width: "7px", height: "7px", borderRadius: "50%", background: status === "live" ? "#00e676" : status === "error" ? "#ff4444" : "#ffd740" }} className="pulse" />
+          <span style={{ fontSize: "9px", color: "#4a3f2a", letterSpacing: "0.1em" }}>
+            {status === "live" ? `LIVE · ${tickCount} ticks · ${candles.length} candles` : status === "error" ? "ERROR — RETRYING..." : "CONNECTING..."}
+          </span>
+        </div>
+      </div>
+
+      <div style={{ background: "#0b0c11", borderBottom: "1px solid #1a1812", padding: "10px 14px 6px" }}>
+        <Sparkline prices={ticks.slice(-80)} signal={sig?.signal} />
+      </div>
+
+      {status === "error" && (
+        <div style={{ margin: "16px", background: "#1a0000", border: "1px solid #ff444433", borderRadius: "8px", padding: "16px", textAlign: "center" }}>
+          <div style={{ color: "#ff6666", fontSize: "13px" }}>⚠ Connection Failed</div>
+          <div style={{ color: "#6a3a3a", fontSize: "10px", marginTop: "6px" }}>Token expired or invalid.</div>
+        </div>
+      )}
+
+      {status === "live" && candles.length < 5 && (
+        <div style={{ margin: "16px", background: "#13100a", border: "1px solid #b8975a22", borderRadius: "8px", padding: "20px", textAlign: "center" }}>
+          <div style={{ color: "#b8975a", fontSize: "12px", letterSpacing: "0.1em" }} className="pulse">COLLECTING LIVE DATA...</div>
+          <div style={{ color: "#4a3f2a", fontSize: "10px", marginTop: "6px" }}>{tickCount} ticks · {candles.length}/5 candles</div>
+          <div style={{ marginTop: "10px", height: "3px", background: "#1a1812", borderRadius: "2px" }}>
+            <div style={{ height: "100%", width: `${(candles.length / 5) * 100}%`, background: "#b8975a", borderRadius: "2px", transition: "width 0.5s" }} />
+          </div>
+        </div>
+      )}
+
+      {sig && (
+        <>
+          <div style={{ margin: "12px 14px", borderRadius: "10px", background: sigBg, border: `2px solid ${sigColor}44` }}>
+            <div style={{ padding: "18px", textAlign: "center" }}>
+              <div style={{ fontSize: "9px", color: "#4a3f2a", letterSpacing: "0.2em", marginBottom: "6px" }}>SMC SIGNAL · LIVE</div>
+              <div style={{ fontFamily: "'Orbitron'", fontSize: "42px", fontWeight: 900, color: sigColor, letterSpacing: "0.08em", lineHeight: 1, textShadow: `0 0 25px ${sigColor}55` }}>
+                {sig.signal === "BUY" ? "▲ BUY" : sig.signal === "SELL" ? "▼ SELL" : "◉ WAIT"}
+              </div>
+              <div style={{ fontSize: "10px", color: sigColor + "99", marginTop: "5px" }}>{sig.confidence}% CONF · {sig.pd.zone}</div>
+              <div style={{ marginTop: "10px", height: "4px", background: "#ffffff10", borderRadius: "2px", overflow: "hidden" }}>
+                <div style={{ height: "100%", width: `${sig.confidence}%`, background: sigColor, transition: "width 0.6s" }} />
+              </div>
+            </div>
+
+            {sig.signal !== "WAIT" && (
+              <>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", borderTop: `1px solid ${sigColor}22` }}>
+                  {[
+                    { l: "ENTRY", v: sig.entry.toFixed(2), c: "#d4c5a0" },
+                    { l: "SL",    v: sig.sl.toFixed(2),    c: "#ff7777" },
+                    { l: "TP1",   v: sig.tp1.toFixed(2),   c: "#77ff99" },
+                    { l: "TP2",   v: sig.tp2.toFixed(2),   c: "#00e676" },
+                  ].map(x => (
+                    <div key={x.l} style={{ padding: "10px 4px", textAlign: "center", borderRight: `1px solid ${sigColor}15` }}>
+                      <div style={{ fontSize: "8px", color: "#4a3f2a", marginBottom: "3px" }}>{x.l}</div>
+                      <div style={{ fontFamily: "'Orbitron'", fontSize: "10px", color: x.c, fontWeight: 700 }}>{x.v}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ padding: "7px", textAlign: "center", fontSize: "9px", color: "#4a3f2a", borderTop: `1px solid ${sigColor}15` }}>
+                  RR = 1:{sig.rr} · ATR {sig.atr}
+                </div>
+              </>
+            )}
+          </div>
+
+          <div style={{ display: "flex", borderBottom: "1px solid #1a1812", margin: "0 14px" }}>
+            {["signal", "zones", "history"].map(t => (
+              <button key={t} className="tab-b" onClick={() => setTab(t)}
+                style={{ color: tab === t ? "#b8975a" : "#3a3028", borderBottom: tab === t ? "2px solid #b8975a" : "2px solid transparent", textTransform: "uppercase" }}>
+                {t === "signal" ? "Reasons" : t === "zones" ? "SMC Zones" : "History"}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ padding: "12px 14px 40px" }}>
+            {tab === "signal" && (
+              <div>
+                <div style={{ marginBottom: "10px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", marginBottom: "4px" }}>
+                    <span style={{ color: "#00e676" }}>BULL {sig.bull}pts</span>
+                    <span style={{ color: "#ff4444" }}>BEAR {sig.bear}pts</span>
+                  </div>
+                  <div style={{ height: "5px", background: "#ff444422", borderRadius: "3px", overflow: "hidden" }}>
+                    <div style={{ width: `${(sig.bull / (sig.bull + sig.bear || 1)) * 100}%`, height: "100%", background: "#00e676", transition: "width 0.6s" }} />
+                  </div>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+                  {sig.reasons.length === 0 && <div style={{ color: "#3a3028", textAlign: "center", padding: "20px", fontSize: "11px" }}>No strong confluences yet...</div>}
+                  {sig.reasons.map((r, i) => (
+                    <div key={i} style={{ display: "flex", gap: "8px", alignItems: "center", padding: "7px 10px", background: r.s === "bull" ? "#001a0d" : "#1a0000", border: `1px solid ${r.s === "bull" ? "#00e67622" : "#ff444422"}`, borderRadius: "5px" }}>
+                      <span style={{ fontSize: "13px" }}>{r.s === "bull" ? "▲" : "▼"}</span>
+                      <span style={{ fontSize: "10px", color: r.s === "bull" ? "#66cc88" : "#cc6666" }}>{r.t}</span>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ marginTop: "12px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
+                  <div style={{ background: "#0f0d09", border: "1px solid #1a1812", borderRadius: "6px", padding: "8px 10px" }}>
+                    <div style={{ fontSize: "8px", color: "#4a3f2a", marginBottom: "3px" }}>RSI (14)</div>
+                    <div style={{ fontFamily: "'Orbitron'", fontSize: "14px", color: +sig.rsi > 65 ? "#ff6666" : +sig.rsi < 35 ? "#66cc88" : "#d4c5a0" }}>{sig.rsi || "—"}</div>
+                  </div>
+                  <div style={{ background: "#0f0d09", border: "1px solid #1a1812", borderRadius: "6px", padding: "8px 10px" }}>
+                    <div style={{ fontSize: "8px", color: "#4a3f2a", marginBottom: "3px" }}>PD ZONE</div>
+                    <div style={{ fontFamily: "'Orbitron'", fontSize: "11px", color: sig.pd.zone === "DISCOUNT" ? "#66cc88" : sig.pd.zone === "PREMIUM" ? "#ff6666" : "#b8975a" }}>{sig.pd.zone}</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {tab === "zones" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <div style={{ background: "#0f0d09", border: "1px solid #1a1812", borderRadius: "7px", padding: "10px 12px" }}>
+                  <div style={{ fontSize: "9px", color: "#4a3f2a", marginBottom: "6px" }}>RANGE (50 CANDLES)</div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", marginBottom: "5px" }}>
+                    <span style={{ color: "#ff7777" }}>H: {sig.pd.hi.toFixed(2)}</span>
+                    <span style={{ color: "#b8975a" }}>{sig.pd.pos}%</span>
+                    <span style={{ color: "#77cc88" }}>L: {sig.pd.lo.toFixed(2)}</span>
+                  </div>
+                  <div style={{ position: "relative", height: "10px", background: "linear-gradient(90deg,#66cc8822,#b8975a22,#ff666622)", borderRadius: "5px" }}>
+                    <div style={{ position: "absolute", left: `${sig.pd.pos}%`, top: "-2px", width: "3px", height: "14px", background: "#fff", borderRadius: "2px", transform: "translateX(-50%)", transition: "left 0.5s" }} />
+                  </div>
+                </div>
+                <div style={{ background: "#0f0d09", border: "1px solid #1a1812", borderRadius: "7px", padding: "10px 12px" }}>
+                  <div style={{ fontSize: "9px", color: "#4a3f2a", marginBottom: "6px" }}>ORDER BLOCKS</div>
+                  {sig.obs.length === 0 && <div style={{ color: "#3a3028", fontSize: "10px" }}>None detected</div>}
+                  {sig.obs.map((ob, i) => (
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: "1px solid #1a1812", fontSize: "10px" }}>
+                      <span style={{ color: ob.type === "BULL" ? "#66cc88" : "#cc6666" }}>{ob.type === "BULL" ? "Bullish OB" : "Bearish OB"}</span>
+                      <span style={{ color: "#5a4f3a" }}>{ob.bottom.toFixed(2)} – {ob.top.toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ background: "#0f0d09", border: "1px solid #1a1812", borderRadius: "7px", padding: "10px 12px" }}>
+                  <div style={{ fontSize: "9px", color: "#4a3f2a", marginBottom: "6px" }}>FAIR VALUE GAPS</div>
+                  {sig.fvgs.length === 0 && <div style={{ color: "#3a3028", fontSize: "10px" }}>None detected</div>}
+                  {sig.fvgs.map((f, i) => (
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: "1px solid #1a1812", fontSize: "10px" }}>
+                      <span style={{ color: f.type === "BULL" ? "#66cc88" : "#cc6666" }}>{f.type} FVG</span>
+                      <span style={{ color: "#5a4f3a" }}>{f.bottom.toFixed(2)} – {f.top.toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {tab === "history" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+                {history.length === 0 && <div style={{ color: "#3a3028", textAlign: "center", padding: "20px", fontSize: "10px" }}>Waiting for signals...</div>}
+                {history.map((h, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 10px", background: "#0f0d09", border: `1px solid ${h.signal === "BUY" ? "#00e67622" : "#ff444422"}`, borderRadius: "6px" }}>
+                    <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                      <span style={{ fontFamily: "'Orbitron'", fontSize: "12px", fontWeight: 700, color: h.signal === "BUY" ? "#00e676" : "#ff4444" }}>{h.signal === "BUY" ? "▲" : "▼"} {h.signal}</span>
+                      <span style={{ fontSize: "11px", color: "#8a7a5a" }}>{h.entry?.toFixed(2)}</span>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontSize: "9px", color: "#3a3028" }}>{h.time?.toLocaleTimeString()}</div>
+                      <div style={{ fontSize: "9px", color: "#4a3f2a" }}>{h.confidence}% conf</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      <div style={{ padding: "8px", textAlign: "center", fontSize: "8px", color: "#2a2218", borderTop: "1px solid #1a1812" }}>
+        ⚠ EDUCATIONAL PURPOSE ONLY · NOT FINANCIAL ADVICE
+      </div>
+    </div>
+  );
+}
