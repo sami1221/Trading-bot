@@ -1,177 +1,1111 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="am">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>XAUUSD · SMC Chart</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Gold Signal Pro | XAU/USD</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+Ethiopic:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
-*{margin:0;padding:0;box-sizing:border-box;}
-body{background:#0d1117;color:#e6edf3;font-family:monospace;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
-#header{background:#161b22;border-bottom:1px solid #30363d;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}
-#sym{font-size:18px;font-weight:900;color:#f0b90b;letter-spacing:.1em;}
-#sub{font-size:9px;color:#6e7681;margin-top:2px;}
-#sig-row{display:flex;align-items:center;gap:10px;padding:6px 14px;background:#1c2128;border-bottom:1px solid #30363d;flex-shrink:0;}
-#sig-badge{font-size:13px;font-weight:900;padding:4px 14px;border-radius:5px;}
-.sb-buy{background:rgba(63,185,80,0.15);color:#3fb950;border:2px solid #3fb950;}
-.sb-sell{background:rgba(248,81,73,0.15);color:#f85149;border:2px solid #f85149;}
-.sb-wait{background:rgba(240,185,11,0.08);color:#f0b90b;border:2px solid rgba(240,185,11,0.3);}
-#sig-txt{font-size:9px;color:#6e7681;line-height:1.7;}
-#chart-wrap{flex:1;min-height:0;}
-.tradingview-widget-container{height:100%!important;}
-#levels{display:grid;grid-template-columns:repeat(4,1fr);background:#161b22;border-top:1px solid #30363d;flex-shrink:0;}
-.lv{padding:6px 4px;text-align:center;border-right:1px solid #30363d;}
-.lv:last-child{border-right:none;}
-.lv-l{font-size:8px;color:#6e7681;text-transform:uppercase;margin-bottom:2px;}
-.lv-v{font-size:11px;font-weight:700;}
+  :root {
+    --gold: #FFD700;
+    --gold-dim: #B8960C;
+    --gold-glow: rgba(255,215,0,0.3);
+    --bg: #050810;
+    --bg2: #0a0f1e;
+    --bg3: #0f1628;
+    --green: #00FF88;
+    --red: #FF3366;
+    --blue: #00BFFF;
+    --text: #E8EAF0;
+    --muted: #6B7280;
+    --border: rgba(255,215,0,0.15);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans Ethiopic', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated grid background */
+  body::before {
+    content:'';
+    position:fixed; inset:0;
+    background-image:
+      linear-gradient(rgba(255,215,0,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,215,0,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events:none; z-index:0;
+  }
+
+  .app { position:relative; z-index:1; max-width:430px; margin:0 auto; padding-bottom:80px; }
+
+  /* ── HEADER ── */
+  .header {
+    background: linear-gradient(135deg, #0a0f1e 0%, #050810 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 18px 12px;
+    position: sticky; top:0; z-index:100;
+    backdrop-filter: blur(20px);
+  }
+
+  .header-top { display:flex; justify-content:space-between; align-items:center; }
+
+  .logo {
+    font-family: 'Orbitron', monospace;
+    font-size: 18px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    background: linear-gradient(135deg, var(--gold), #FFF0A0, var(--gold));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .live-badge {
+    display:flex; align-items:center; gap:6px;
+    background: rgba(0,255,136,0.1);
+    border: 1px solid rgba(0,255,136,0.3);
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 11px;
+    color: var(--green);
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  .live-dot {
+    width:7px; height:7px;
+    background: var(--green);
+    border-radius:50%;
+    animation: pulse-dot 1.2s infinite;
+  }
+
+  @keyframes pulse-dot {
+    0%,100% { opacity:1; transform:scale(1); }
+    50% { opacity:0.4; transform:scale(0.7); }
+  }
+
+  .price-bar {
+    margin-top: 10px;
+    display:flex; justify-content:space-between; align-items:center;
+  }
+
+  .price-main {
+    font-family: 'Orbitron', monospace;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--gold);
+    text-shadow: 0 0 20px var(--gold-glow);
+    transition: color 0.3s;
+  }
+
+  .price-meta { text-align:right; }
+  .price-change {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-weight: 700;
+  }
+  .price-change.up { color: var(--green); background: rgba(0,255,136,0.12); }
+  .price-change.down { color: var(--red); background: rgba(255,51,102,0.12); }
+  .price-label { font-size:11px; color:var(--muted); margin-top:2px; }
+
+  /* ── TABS ── */
+  .tabs {
+    display:flex;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display:none; }
+
+  .tab {
+    flex: 1;
+    padding: 13px 8px;
+    text-align:center;
+    font-size: 12px;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.25s;
+    white-space: nowrap;
+    min-width: 70px;
+  }
+  .tab.active {
+    color: var(--gold);
+    border-bottom-color: var(--gold);
+    background: rgba(255,215,0,0.05);
+  }
+  .tab-icon { font-size:16px; display:block; margin-bottom:2px; }
+
+  /* ── SECTIONS ── */
+  .section { display:none; padding: 16px; }
+  .section.active { display:block; }
+
+  /* ── CHART ── */
+  .chart-container {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    height: 380px;
+    margin-bottom: 12px;
+  }
+
+  .chart-container iframe {
+    width:100%; height:100%; border:none;
+  }
+
+  /* ── SIGNAL CARD ── */
+  .signal-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 12px;
+    position: relative;
+    overflow: hidden;
+    animation: slideIn 0.4s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity:0; transform:translateY(10px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+
+  .signal-card::before {
+    content:'';
+    position:absolute; left:0; top:0; bottom:0;
+    width: 4px;
+    border-radius: 4px 0 0 4px;
+  }
+  .signal-card.buy::before { background: var(--green); }
+  .signal-card.sell::before { background: var(--red); }
+
+  .signal-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; }
+
+  .signal-type {
+    display:flex; align-items:center; gap:8px;
+  }
+
+  .signal-badge {
+    font-family: 'Orbitron', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 5px 12px;
+    border-radius: 8px;
+    letter-spacing: 1px;
+  }
+  .signal-badge.buy { background: rgba(0,255,136,0.15); color: var(--green); border: 1px solid rgba(0,255,136,0.3); }
+  .signal-badge.sell { background: rgba(255,51,102,0.15); color: var(--red); border: 1px solid rgba(255,51,102,0.3); }
+
+  .signal-pair {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    color: var(--gold);
+  }
+
+  .signal-time {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  .signal-levels {
+    display:grid; grid-template-columns:1fr 1fr;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .level-item { }
+  .level-label { font-size: 10px; color: var(--muted); margin-bottom:2px; }
+  .level-value {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .level-value.entry { color: var(--blue); }
+  .level-value.tp { color: var(--green); }
+  .level-value.sl { color: var(--red); }
+
+  .signal-progress {
+    margin-top: 10px;
+  }
+  .progress-label { display:flex; justify-content:space-between; font-size:10px; color:var(--muted); margin-bottom:4px; }
+  .progress-bar {
+    height:5px; background: rgba(255,255,255,0.08);
+    border-radius: 10px; overflow:hidden;
+  }
+  .progress-fill {
+    height:100%; border-radius:10px;
+    transition: width 1s ease;
+    background: linear-gradient(90deg, var(--green), #00FFB8);
+  }
+
+  .signal-note {
+    margin-top:10px; padding:8px;
+    background: rgba(255,215,0,0.05);
+    border: 1px solid rgba(255,215,0,0.1);
+    border-radius: 8px;
+    font-size: 12px;
+    color: #CCC;
+    line-height: 1.6;
+  }
+
+  /* ── AI ANALYSIS SECTION ── */
+  .ai-section { }
+
+  .ai-input-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+
+  .ai-input-card h3 {
+    font-size: 13px;
+    color: var(--gold);
+    margin-bottom: 10px;
+    display:flex; align-items:center; gap:6px;
+  }
+
+  .input-row {
+    display:flex; gap:8px; margin-bottom:8px;
+  }
+
+  .input-group { flex:1; }
+  .input-group label { font-size: 10px; color:var(--muted); display:block; margin-bottom:4px; }
+  .input-group input, .input-group select {
+    width:100%;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,215,0,0.15);
+    border-radius: 8px;
+    color: var(--text);
+    padding: 9px 10px;
+    font-size: 13px;
+    font-family: 'Share Tech Mono', monospace;
+    outline:none;
+    transition: border-color 0.2s;
+  }
+  .input-group input:focus, .input-group select:focus {
+    border-color: var(--gold);
+  }
+  .input-group select option { background: #0a0f1e; }
+
+  textarea.ai-prompt {
+    width:100%;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,215,0,0.15);
+    border-radius: 8px;
+    color: var(--text);
+    padding: 10px;
+    font-size: 12px;
+    font-family: 'Noto Sans Ethiopic', sans-serif;
+    resize: none;
+    outline:none;
+    height: 80px;
+    margin-bottom: 8px;
+    transition: border-color 0.2s;
+  }
+  textarea.ai-prompt:focus { border-color: var(--gold); }
+
+  .btn-ai {
+    width:100%;
+    background: linear-gradient(135deg, #B8960C, var(--gold), #FFE44D);
+    color: #050810;
+    border: none;
+    border-radius: 10px;
+    padding: 13px;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: 'Orbitron', monospace;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+  }
+  .btn-ai:active { transform:scale(0.98); opacity:0.9; }
+  .btn-ai:disabled { opacity:0.5; cursor:not-allowed; }
+
+  .ai-result {
+    background: var(--bg2);
+    border: 1px solid rgba(255,215,0,0.2);
+    border-radius: 14px;
+    padding: 16px;
+    margin-top: 12px;
+    display:none;
+    animation: slideIn 0.3s ease;
+  }
+  .ai-result.visible { display:block; }
+
+  .ai-result h4 {
+    font-size: 12px; color: var(--gold); margin-bottom:10px;
+    display:flex; align-items:center; gap:6px;
+    font-family:'Orbitron',monospace; letter-spacing:1px;
+  }
+
+  .ai-result-text {
+    font-size: 13px;
+    line-height: 1.8;
+    color: #D0D4E0;
+    white-space: pre-wrap;
+  }
+
+  .loading-dots span {
+    animation: blink 1.2s infinite;
+    font-size: 20px;
+    color: var(--gold);
+  }
+  .loading-dots span:nth-child(2) { animation-delay:0.2s; }
+  .loading-dots span:nth-child(3) { animation-delay:0.4s; }
+  @keyframes blink { 0%,100%{opacity:0.2} 50%{opacity:1} }
+
+  /* ── TRACKER ── */
+  .tracker-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+
+  .tracker-card h3 {
+    font-size: 13px; color: var(--gold);
+    margin-bottom:14px;
+    display:flex; align-items:center; gap:6px;
+    font-family:'Orbitron',monospace;
+  }
+
+  .trade-form { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px; }
+
+  .btn-add {
+    grid-column: span 2;
+    background: rgba(0,191,255,0.12);
+    color: var(--blue);
+    border: 1px solid rgba(0,191,255,0.3);
+    border-radius: 8px;
+    padding: 11px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-add:active { background: rgba(0,191,255,0.2); }
+
+  .trades-list { margin-top: 4px; }
+
+  .trade-item {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom:8px;
+    display:flex; justify-content:space-between; align-items:center;
+  }
+
+  .trade-info { }
+  .trade-type { font-size:10px; color:var(--muted); }
+  .trade-entry {
+    font-family:'Share Tech Mono',monospace;
+    font-size:13px; color:var(--text);
+    margin-bottom:4px;
+  }
+  .trade-levels { font-family:'Share Tech Mono',monospace; font-size:11px; }
+  .trade-levels .tp { color:var(--green); }
+  .trade-levels .sl { color:var(--red); }
+
+  .trade-pnl {
+    text-align:right;
+  }
+  .pnl-value {
+    font-family:'Orbitron',monospace;
+    font-size:14px; font-weight:700;
+  }
+  .pnl-value.profit { color:var(--green); }
+  .pnl-value.loss { color:var(--red); }
+  .pnl-pips { font-size:10px; color:var(--muted); }
+
+  .btn-close-trade {
+    margin-top:4px;
+    background: rgba(255,51,102,0.1);
+    color: var(--red);
+    border: 1px solid rgba(255,51,102,0.2);
+    border-radius:6px; padding:4px 8px;
+    font-size:10px; cursor:pointer;
+  }
+
+  /* ── NEWS ── */
+  .news-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 10px;
+    transition: border-color 0.2s;
+    cursor: pointer;
+  }
+  .news-card:active { border-color: var(--gold); }
+
+  .news-meta { display:flex; justify-content:space-between; margin-bottom:6px; }
+  .news-tag {
+    font-size:10px; padding:2px 8px; border-radius:10px;
+    background:rgba(255,215,0,0.1); color:var(--gold);
+    font-family:'Share Tech Mono',monospace;
+  }
+  .news-time { font-size:10px; color:var(--muted); font-family:'Share Tech Mono',monospace; }
+  .news-title { font-size:13px; color:var(--text); line-height:1.5; margin-bottom:6px; }
+  .news-impact {
+    font-size:10px;
+    display:inline-flex; align-items:center; gap:4px;
+  }
+  .impact-high { color:var(--red); }
+  .impact-med { color:#FFB347; }
+  .impact-low { color:var(--green); }
+
+  .btn-refresh {
+    width:100%;
+    background: rgba(255,215,0,0.08);
+    color: var(--gold);
+    border: 1px solid rgba(255,215,0,0.2);
+    border-radius: 10px;
+    padding: 12px;
+    font-size:13px;
+    cursor:pointer;
+    margin-bottom:12px;
+    transition:all 0.2s;
+    display:flex; align-items:center; justify-content:center; gap:6px;
+  }
+  .btn-refresh:active { background:rgba(255,215,0,0.15); }
+
+  /* ── BOTTOM NAV ── */
+  .bottom-nav {
+    position:fixed; bottom:0; left:50%; transform:translateX(-50%);
+    width:100%; max-width:430px;
+    background: rgba(5,8,16,0.95);
+    border-top: 1px solid var(--border);
+    display:flex;
+    backdrop-filter:blur(20px);
+    z-index:200;
+  }
+
+  .nav-item {
+    flex:1; padding:12px 6px 10px;
+    text-align:center; cursor:pointer;
+    transition:all 0.2s;
+  }
+  .nav-item.active .nav-icon { color:var(--gold); }
+  .nav-item.active .nav-label { color:var(--gold); }
+  .nav-icon { font-size:20px; display:block; margin-bottom:2px; color:var(--muted); }
+  .nav-label { font-size:10px; color:var(--muted); }
+
+  /* ── UTILITIES ── */
+  .divider {
+    height:1px; background:var(--border); margin:12px 0;
+  }
+
+  .empty-state {
+    text-align:center; padding:30px 20px;
+    color:var(--muted);
+  }
+  .empty-state .empty-icon { font-size:36px; margin-bottom:8px; }
+  .empty-state p { font-size:13px; }
+
+  .stat-row {
+    display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:12px;
+  }
+  .stat-box {
+    background:var(--bg2); border:1px solid var(--border);
+    border-radius:10px; padding:10px; text-align:center;
+  }
+  .stat-box .val { font-family:'Orbitron',monospace; font-size:14px; font-weight:700; color:var(--gold); }
+  .stat-box .lbl { font-size:10px; color:var(--muted); margin-top:2px; }
+
 </style>
 </head>
 <body>
+<div class="app">
 
-<div id="header">
-  <div>
-    <div id="sym">XAUUSD</div>
-    <div id="sub">Real-Time · TradingView · SMC Analysis</div>
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-top">
+      <div class="logo">⬡ GOLD SIGNAL</div>
+      <div class="live-badge"><span class="live-dot"></span>LIVE</div>
+    </div>
+    <div class="price-bar">
+      <div>
+        <div class="price-main" id="livePrice">—</div>
+        <div style="font-size:11px;color:var(--muted);font-family:'Share Tech Mono',monospace;">XAU/USD • GOLD</div>
+      </div>
+      <div class="price-meta">
+        <div class="price-change up" id="priceChange">+0.00%</div>
+        <div class="price-label" id="lastUpdate">ዝምድና እየጫነ...</div>
+      </div>
+    </div>
   </div>
-  <div style="text-align:right;font-size:10px;color:#6e7681;">
-    5M CHART<br>
-    <span style="color:#3fb950;font-size:9px;">● LIVE</span>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('chart')">
+      <span class="tab-icon">📊</span>Chart
+    </div>
+    <div class="tab" onclick="showTab('signals')">
+      <span class="tab-icon">🎯</span>Signals
+    </div>
+    <div class="tab" onclick="showTab('ai')">
+      <span class="tab-icon">🤖</span>AI አናሊስ
+    </div>
+    <div class="tab" onclick="showTab('tracker')">
+      <span class="tab-icon">📈</span>Tracker
+    </div>
+    <div class="tab" onclick="showTab('news')">
+      <span class="tab-icon">📰</span>News
+    </div>
   </div>
-</div>
 
-<div id="sig-row">
-  <div id="sig-badge" class="sb-wait">◉ WAIT</div>
-  <div id="sig-txt">Analyzing market structure...<br>Check chart for entry confirmation</div>
-</div>
-
-<div id="chart-wrap">
-  <div class="tradingview-widget-container" style="height:100%;width:100%;">
-    <div id="tradingview_chart" style="height:100%;width:100%;"></div>
-    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-    <script type="text/javascript">
-    new TradingView.widget({
-      container_id: "tradingview_chart",
-      autosize: true,
-      symbol: "OANDA:XAUUSD",
-      interval: "5",
-      timezone: "Etc/UTC",
-      theme: "dark",
-      style: "1",
-      locale: "en",
-      toolbar_bg: "#161b22",
-      enable_publishing: false,
-      hide_top_toolbar: false,
-      hide_legend: false,
-      save_image: false,
-      backgroundColor: "#0d1117",
-      gridColor: "#161b22",
-      studies: [
-        "MASimple@tv-basicstudies",
-        "RSI@tv-basicstudies"
-      ],
-      studies_overrides: {
-        "ma.length": 9,
-        "ma.plot.color": "#f0b90b"
-      },
-      overrides: {
-        "mainSeriesProperties.candleStyle.upColor": "#3fb950",
-        "mainSeriesProperties.candleStyle.downColor": "#f85149",
-        "mainSeriesProperties.candleStyle.borderUpColor": "#3fb950",
-        "mainSeriesProperties.candleStyle.borderDownColor": "#f85149",
-        "mainSeriesProperties.candleStyle.wickUpColor": "#3fb950",
-        "mainSeriesProperties.candleStyle.wickDownColor": "#f85149",
-        "paneProperties.background": "#0d1117",
-        "paneProperties.backgroundType": "solid",
-        "paneProperties.vertGridProperties.color": "#161b22",
-        "paneProperties.horzGridProperties.color": "#161b22"
-      }
-    });
-    </script>
+  <!-- ── CHART ── -->
+  <div id="tab-chart" class="section active">
+    <div class="chart-container">
+      <iframe
+        src="https://s.tradingview.com/widgetembed/?frameElementId=tradingview&symbol=XAUUSD&interval=1&hidesidetoolbar=0&symboledit=0&saveimage=0&toolbarbg=050810&studies=[]&theme=dark&style=1&timezone=Etc%2FUTC&withdateranges=1&showpopupbutton=0&studies_overrides={}&overrides={}&enabled_features=[]&disabled_features=[]&locale=en&utm_source=gold-signal"
+        allowtransparency="true"
+        allowfullscreen=""
+      ></iframe>
+    </div>
+    <div class="stat-row">
+      <div class="stat-box">
+        <div class="val" id="statHigh">—</div>
+        <div class="lbl">Day High</div>
+      </div>
+      <div class="stat-box">
+        <div class="val" id="statLow">—</div>
+        <div class="lbl">Day Low</div>
+      </div>
+      <div class="stat-box">
+        <div class="val" id="statSpread">1.15</div>
+        <div class="lbl">Spread</div>
+      </div>
+    </div>
   </div>
-</div>
 
-<div id="levels">
-  <div class="lv"><div class="lv-l">Entry</div><div class="lv-v" id="lv-e" style="color:#e6edf3;">See Chart</div></div>
-  <div class="lv"><div class="lv-l">Stop</div><div class="lv-v" id="lv-s" style="color:#f85149;">---</div></div>
-  <div class="lv"><div class="lv-l">TP1</div><div class="lv-v" id="lv-t1" style="color:#3fb950;">---</div></div>
-  <div class="lv"><div class="lv-l">TP2</div><div class="lv-v" id="lv-t2" style="color:#3dd68c;">---</div></div>
-</div>
+  <!-- ── SIGNALS ── -->
+  <div id="tab-signals" class="section">
+    <div id="signalsList"></div>
+  </div>
+
+  <!-- ── AI ANALYSIS ── -->
+  <div id="tab-ai" class="section ai-section">
+    <div class="ai-input-card">
+      <h3>🤖 AI የ Gold ትንታኔ</h3>
+      <div class="input-row">
+        <div class="input-group">
+          <label>አሁን ዋጋ (Price)</label>
+          <input type="number" id="aiPrice" placeholder="4500.00" step="0.01">
+        </div>
+        <div class="input-group">
+          <label>Trend</label>
+          <select id="aiTrend">
+            <option value="bullish">📈 Bullish</option>
+            <option value="bearish">📉 Bearish</option>
+            <option value="sideways">↔️ Sideways</option>
+          </select>
+        </div>
+      </div>
+      <div class="input-row">
+        <div class="input-group">
+          <label>Timeframe</label>
+          <select id="aiTf">
+            <option value="M1">M1 (1 Minute)</option>
+            <option value="M5">M5 (5 Minutes)</option>
+            <option value="M15">M15</option>
+            <option value="H1" selected>H1 (1 Hour)</option>
+            <option value="H4">H4</option>
+            <option value="D1">D1 (Daily)</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>Risk (Lot)</label>
+          <select id="aiLot">
+            <option value="0.01">0.01 Mini</option>
+            <option value="0.05">0.05</option>
+            <option value="0.1">0.10</option>
+            <option value="0.5">0.50</option>
+            <option value="1.0">1.00</option>
+          </select>
+        </div>
+      </div>
+      <textarea class="ai-prompt" id="aiQuestion" placeholder="ጥያቄ ወይም extra info ጻፍ... ለምሳሌ: 'NFP data ወጣ, ምን ዓይነት signal ነው?' ወይም 'Support level ላይ ቆሟል'"></textarea>
+      <button class="btn-ai" id="aiBtn" onclick="getAIAnalysis()">
+        ⚡ AI ትንታኔ ስጠኝ
+      </button>
+    </div>
+
+    <div class="ai-result" id="aiResult">
+      <h4>🤖 AI ትንታኔ</h4>
+      <div class="ai-result-text" id="aiResultText"></div>
+    </div>
+  </div>
+
+  <!-- ── TRACKER ── -->
+  <div id="tab-tracker" class="section">
+    <div class="tracker-card">
+      <h3>📈 Trade Tracker</h3>
+      <div class="trade-form">
+        <div class="input-group">
+          <label>Type</label>
+          <select id="tType">
+            <option value="BUY">BUY</option>
+            <option value="SELL">SELL</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>Entry Price</label>
+          <input type="number" id="tEntry" placeholder="4500.00" step="0.01">
+        </div>
+        <div class="input-group">
+          <label>TP (Take Profit)</label>
+          <input type="number" id="tTP" placeholder="4530.00" step="0.01">
+        </div>
+        <div class="input-group">
+          <label>SL (Stop Loss)</label>
+          <input type="number" id="tSL" placeholder="4470.00" step="0.01">
+        </div>
+        <div class="input-group">
+          <label>Lot Size</label>
+          <input type="number" id="tLot" placeholder="1.15" step="0.01" value="0.01">
+        </div>
+        <div class="input-group">
+          <label>Note (ማስታወሻ)</label>
+          <input type="text" id="tNote" placeholder="Optional...">
+        </div>
+        <button class="btn-add" onclick="addTrade()">➕ Trade ጨምር</button>
+      </div>
+    </div>
+
+    <div id="tradesList"></div>
+
+    <div class="stat-row" id="pnlStats" style="display:none">
+      <div class="stat-box">
+        <div class="val profit" id="totalPnl">+0</div>
+        <div class="lbl">Total P&L</div>
+      </div>
+      <div class="stat-box">
+        <div class="val" id="totalTrades">0</div>
+        <div class="lbl">Trades</div>
+      </div>
+      <div class="stat-box">
+        <div class="val" id="winRate">0%</div>
+        <div class="lbl">Win Rate</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── NEWS ── -->
+  <div id="tab-news" class="section">
+    <button class="btn-refresh" onclick="loadAINews()">
+      <span id="newsRefreshIcon">🔄</span> AI News ሎድ አድርግ
+    </button>
+    <div id="newsList">
+      <div class="empty-state">
+        <div class="empty-icon">📰</div>
+        <p>"AI News ሎድ አድርግ" ተጫን</p>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end app -->
 
 <script>
-// SMC signal updater — every 30 seconds fetches price from TradingView widget
-// and runs basic SMC logic for the signal badge
-const prices = [];
-let sigInterval;
+// ═══════════════════════════════════════════
+// TELEGRAM INIT
+// ═══════════════════════════════════════════
+const tg = window.Telegram?.WebApp;
+if (tg) {
+  tg.ready();
+  tg.expand();
+  tg.setHeaderColor('#050810');
+}
 
-function updateSignal(){
-  if(prices.length < 10) return;
-  const cur = prices[prices.length-1];
-  const hi = Math.max(...prices.slice(-20));
-  const lo = Math.min(...prices.slice(-20));
-  const fib = (cur - lo) / (hi - lo || 1);
+// ═══════════════════════════════════════════
+// PRICE FEED (simulated with realistic motion)
+// ═══════════════════════════════════════════
+let currentPrice = 4512.87;
+let openPrice = 4480.00;
 
-  // Simple trend
-  const avg5  = prices.slice(-5).reduce((a,b)=>a+b)/5;
-  const avg20 = prices.slice(-20).reduce((a,b)=>a+b)/20;
+function updatePrice() {
+  const change = (Math.random() - 0.48) * 2.5;
+  currentPrice = Math.max(4400, Math.min(4600, currentPrice + change));
+  const diff = currentPrice - openPrice;
+  const pct = ((diff / openPrice) * 100).toFixed(2);
 
-  let bull=0, bear=0, reasons=[];
-  if(avg5 > avg20){ bull+=2; reasons.push("+ Bullish trend"); }
-  else             { bear+=2; reasons.push("- Bearish trend"); }
-  if(fib < 0.382){ bull+=2; reasons.push("+ Discount zone"); }
-  if(fib > 0.618){ bear+=2; reasons.push("- Premium zone"); }
+  const el = document.getElementById('livePrice');
+  const chEl = document.getElementById('priceChange');
 
-  const net = bull - bear;
-  const badge = document.getElementById('sig-badge');
-  const txt   = document.getElementById('sig-txt');
-  const zone  = fib > 0.618 ? "PREMIUM" : fib < 0.382 ? "DISCOUNT" : "EQUILIBRIUM";
-  const conf  = Math.round(Math.max(bull,bear)/(bull+bear||1)*100);
+  el.textContent = currentPrice.toFixed(2);
+  el.style.color = change >= 0 ? 'var(--green)' : 'var(--red)';
+  setTimeout(() => el.style.color = 'var(--gold)', 400);
 
-  if(net >= 2){
-    badge.textContent = "▲ BUY";
-    badge.className = "sb-buy";
-    const atr = (hi - lo) / 20 * 3;
-    document.getElementById('lv-e').textContent  = cur.toFixed(2);
-    document.getElementById('lv-s').textContent  = (cur - atr*1.5).toFixed(2);
-    document.getElementById('lv-t1').textContent = (cur + atr*2).toFixed(2);
-    document.getElementById('lv-t2').textContent = (cur + atr*3.5).toFixed(2);
-  } else if(net <= -2){
-    badge.textContent = "▼ SELL";
-    badge.className = "sb-sell";
-    const atr = (hi - lo) / 20 * 3;
-    document.getElementById('lv-e').textContent  = cur.toFixed(2);
-    document.getElementById('lv-s').textContent  = (cur + atr*1.5).toFixed(2);
-    document.getElementById('lv-t1').textContent = (cur - atr*2).toFixed(2);
-    document.getElementById('lv-t2').textContent = (cur - atr*3.5).toFixed(2);
-  } else {
-    badge.textContent = "◉ WAIT";
-    badge.className = "sb-wait";
+  chEl.textContent = (diff >= 0 ? '+' : '') + pct + '%';
+  chEl.className = 'price-change ' + (diff >= 0 ? 'up' : 'down');
+
+  const now = new Date();
+  document.getElementById('lastUpdate').textContent =
+    now.toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+
+  // update day stats
+  document.getElementById('statHigh').textContent = (currentPrice + 12).toFixed(2);
+  document.getElementById('statLow').textContent = (currentPrice - 18).toFixed(2);
+
+  updateTradesPnl();
+}
+
+setInterval(updatePrice, 2000);
+updatePrice();
+
+// ═══════════════════════════════════════════
+// TAB NAVIGATION
+// ═══════════════════════════════════════════
+function showTab(name) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  const tabs = ['chart','signals','ai','tracker','news'];
+  const idx = tabs.indexOf(name);
+  document.querySelectorAll('.tab')[idx].classList.add('active');
+}
+
+// ═══════════════════════════════════════════
+// SIGNALS
+// ═══════════════════════════════════════════
+const sampleSignals = [
+  {
+    id:1, type:'buy',
+    entry:'4500.30', tp1:'4530.00', tp2:'4560.00', sl:'4480.00',
+    lot:'1.15', pips:'+12.52', progress:60,
+    time: '14:36', status:'active',
+    note:'Moving Average crossover ተፈጥሯል። Strong bullish momentum አለ።'
+  },
+  {
+    id:2, type:'buy',
+    entry:'4445.00', tp1:'4490.00', tp2:'4530.00', sl:'4410.00',
+    lot:'0.50', pips:'+45.00', progress:100,
+    time: '09:12', status:'closed',
+    note:'Support zone bounce። TP1 ደርሷል!'
+  }
+];
+
+function renderSignals() {
+  const container = document.getElementById('signalsList');
+  if (!sampleSignals.length) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">🎯</div><p>አዲስ signal የለም</p></div>';
+    return;
+  }
+  container.innerHTML = sampleSignals.map(s => `
+    <div class="signal-card ${s.type}">
+      <div class="signal-header">
+        <div class="signal-type">
+          <span class="signal-badge ${s.type}">${s.type.toUpperCase()}</span>
+          <span class="signal-pair">XAU/USD</span>
+        </div>
+        <div>
+          <div class="signal-time">🕐 ${s.time}</div>
+          <div style="font-size:10px;color:${s.status==='active'?'var(--green)':'var(--muted)'}">
+            ${s.status === 'active' ? '● Active' : '✓ Closed'}
+          </div>
+        </div>
+      </div>
+      <div class="signal-levels">
+        <div class="level-item">
+          <div class="level-label">📍 Entry</div>
+          <div class="level-value entry">$${s.entry}</div>
+        </div>
+        <div class="level-item">
+          <div class="level-label">🎯 TP1</div>
+          <div class="level-value tp">$${s.tp1}</div>
+        </div>
+        <div class="level-item">
+          <div class="level-label">🎯 TP2</div>
+          <div class="level-value tp">$${s.tp2}</div>
+        </div>
+        <div class="level-item">
+          <div class="level-label">🛑 SL</div>
+          <div class="level-value sl">$${s.sl}</div>
+        </div>
+      </div>
+      <div class="signal-progress">
+        <div class="progress-label">
+          <span>Progress to TP1</span>
+          <span style="color:var(--green)">${s.pips} pips</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width:${s.progress}%"></div>
+        </div>
+      </div>
+      <div class="signal-note">💡 ${s.note}</div>
+    </div>
+  `).join('');
+}
+
+renderSignals();
+
+// ═══════════════════════════════════════════
+// AI ANALYSIS
+// ═══════════════════════════════════════════
+async function getAIAnalysis() {
+  const price = document.getElementById('aiPrice').value || currentPrice.toFixed(2);
+  const trend = document.getElementById('aiTrend').value;
+  const tf = document.getElementById('aiTf').value;
+  const lot = document.getElementById('aiLot').value;
+  const question = document.getElementById('aiQuestion').value;
+
+  const btn = document.getElementById('aiBtn');
+  const resultDiv = document.getElementById('aiResult');
+  const resultText = document.getElementById('aiResultText');
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loading-dots"><span>.</span><span>.</span><span>.</span></span>';
+
+  resultDiv.classList.add('visible');
+  resultText.innerHTML = '<span class="loading-dots"><span>●</span><span>●</span><span>●</span></span> AI እያወቀ ነው...';
+
+  const prompt = `You are an expert XAU/USD gold trading analyst. Analyze the following and provide a clear trading signal in Amharic (Ethiopian) language.
+
+Current Price: $${price}
+Trend: ${trend}
+Timeframe: ${tf}
+Lot size: ${lot}
+${question ? 'Trader question: ' + question : ''}
+
+Respond in Amharic with:
+1. 📊 ገበያ ሁኔታ (Market condition summary - 2 sentences)
+2. 🎯 Signal: BUY ወይም SELL ወይም WAIT
+3. Entry zone: $XXX - $XXX
+4. TP1: $XXX | TP2: $XXX
+5. SL: $XXX
+6. ⚠️ Risk ማስጠንቀቂያ (1-2 sentences)
+Keep it concise and actionable.`;
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        messages: [{ role: "user", content: prompt }]
+      })
+    });
+
+    const data = await response.json();
+    const text = data.content?.map(c => c.text || '').join('') || 'Error occurred';
+    resultText.textContent = text;
+
+  } catch (err) {
+    resultText.textContent = '❌ ስህተት ተፈጥሯል። Internet connection ያረጋግጡ።\n\n' + err.message;
   }
 
-  txt.innerHTML = conf + '% conf &nbsp;·&nbsp; ' + zone + '<br>' + reasons.slice(0,2).join(' &nbsp;·&nbsp; ');
+  btn.disabled = false;
+  btn.innerHTML = '⚡ AI ትንታኔ ስጠኝ';
 }
 
-// Simulate price collection from visible chart (real prices from TradingView)
-// For actual price reading, user watches chart + signal updates every 30s
-let fakeBase = 3320;
-function fetchPrice(){
-  // In production use: read from TradingView widget's last price
-  // Here we update signal every 30s based on trend detection
-  updateSignal();
+// ═══════════════════════════════════════════
+// TRADE TRACKER
+// ═══════════════════════════════════════════
+let trades = JSON.parse(localStorage.getItem('gold_trades') || '[]');
+
+function addTrade() {
+  const type = document.getElementById('tType').value;
+  const entry = parseFloat(document.getElementById('tEntry').value);
+  const tp = parseFloat(document.getElementById('tTP').value);
+  const sl = parseFloat(document.getElementById('tSL').value);
+  const lot = parseFloat(document.getElementById('tLot').value || '0.01');
+  const note = document.getElementById('tNote').value;
+
+  if (!entry || !tp || !sl) { alert('Entry, TP, SL ሙላ!'); return; }
+
+  trades.push({
+    id: Date.now(), type, entry, tp, sl, lot, note,
+    time: new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),
+    open: true
+  });
+
+  saveTrades();
+  renderTrades();
+
+  // clear inputs
+  ['tEntry','tTP','tSL','tNote'].forEach(id => document.getElementById(id).value = '');
 }
 
-// The TradingView widget shows REAL price — signal logic runs on top
-window.addEventListener('message', function(e){
-  try{
-    const d = JSON.parse(e.data);
-    if(d && d.name === 'quoteUpdate' && d.data && d.data.lp){
-      prices.push(+d.data.lp);
-      if(prices.length > 50) prices.shift();
-      updateSignal();
-    }
-  }catch(err){}
+function closeTrade(id) {
+  const t = trades.find(x => x.id === id);
+  if (t) t.open = false;
+  saveTrades();
+  renderTrades();
+}
+
+function saveTrades() {
+  try { localStorage.setItem('gold_trades', JSON.stringify(trades)); } catch(e) {}
+}
+
+function calcPnl(trade, currentP) {
+  const diff = trade.type === 'BUY'
+    ? currentP - trade.entry
+    : trade.entry - currentP;
+  return (diff * trade.lot * 100).toFixed(2);
+}
+
+function renderTrades() {
+  const container = document.getElementById('tradesList');
+  const active = trades.filter(t => t.open);
+  const closed = trades.filter(t => !t.open);
+
+  if (!trades.length) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><p>Trade አልተጨመረም</p></div>';
+    document.getElementById('pnlStats').style.display = 'none';
+    return;
+  }
+
+  document.getElementById('pnlStats').style.display = 'grid';
+
+  let html = '';
+  if (active.length) {
+    html += `<div style="font-size:12px;color:var(--muted);margin-bottom:6px;padding-left:4px;">Active Trades (${active.length})</div>`;
+    html += active.map(t => {
+      const pnl = calcPnl(t, currentPrice);
+      const isProfit = parseFloat(pnl) >= 0;
+      return `
+        <div class="trade-item">
+          <div class="trade-info">
+            <div class="trade-type">${t.time} • ${t.lot} lot</div>
+            <div class="trade-entry">
+              <span style="color:${t.type==='BUY'?'var(--green)':'var(--red)'}">${t.type}</span>
+              @ $${t.entry}
+            </div>
+            <div class="trade-levels">
+              <span class="tp">TP: $${t.tp}</span> &nbsp;
+              <span class="sl">SL: $${t.sl}</span>
+            </div>
+            ${t.note ? `<div style="font-size:10px;color:var(--muted);margin-top:2px">${t.note}</div>` : ''}
+          </div>
+          <div class="trade-pnl">
+            <div class="pnl-value ${isProfit?'profit':'loss'}">${isProfit?'+':''}${pnl}</div>
+            <div class="pnl-pips">GBP</div>
+            <button class="btn-close-trade" onclick="closeTrade(${t.id})">Close</button>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  if (closed.length) {
+    html += `<div style="font-size:12px;color:var(--muted);margin:10px 0 6px;padding-left:4px;">Closed Trades</div>`;
+    html += closed.slice(-5).map(t => {
+      const finalPnl = calcPnl(t, t.closePrice || t.tp);
+      const isP = parseFloat(finalPnl) >= 0;
+      return `
+        <div class="trade-item" style="opacity:0.6">
+          <div class="trade-info">
+            <div class="trade-type">✓ Closed • ${t.lot} lot</div>
+            <div class="trade-entry"><span style="color:${t.type==='BUY'?'var(--green)':'var(--red)'}">${t.type}</span> @ $${t.entry}</div>
+          </div>
+          <div class="trade-pnl">
+            <div class="pnl-value ${isP?'profit':'loss'}">${isP?'+':''}${finalPnl}</div>
+            <div class="pnl-pips">GBP</div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  container.innerHTML = html;
+  updatePnlStats();
+}
+
+function updateTradesPnl() {
+  renderTrades();
+}
+
+function updatePnlStats() {
+  const active = trades.filter(t => t.open);
+  const totalPnl = active.reduce((sum, t) => sum + parseFloat(calcPnl(t, currentPrice)), 0);
+  const total = trades.length;
+  const wins = trades.filter(t => !t.open && parseFloat(calcPnl(t, t.tp)) > 0).length;
+  const winRate = total > 0 ? Math.round((wins/total)*100) : 0;
+
+  const pnlEl = document.getElementById('totalPnl');
+  pnlEl.textContent = (totalPnl >= 0 ? '+' : '') + totalPnl.toFixed(2);
+  pnlEl.className = 'val ' + (totalPnl >= 0 ? 'profit' : 'loss');
+  document.getElementById('totalTrades').textContent = total;
+  document.getElementById('winRate').textContent = winRate + '%';
+}
+
+renderTrades();
+
+// ═══════════════════════════════════════════
+// AI NEWS
+// ═══════════════════════════════════════════
+async function loadAINews() {
+  const btn = document.querySelector('.btn-refresh');
+  const container = document.getElementById('newsList');
+  btn.innerHTML = '<span class="loading-dots"><span>●</span><span>●</span><span>●</span></span> እያጫነ...';
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        messages: [{
+          role: "user",
+          content: `Generate 5 realistic current gold (XAU/USD) market news items for traders. Return ONLY a JSON array, no markdown, no explanation:
+[
+  {
+    "title": "news title in Amharic",
+    "tag": "SHORT_TAG",
+    "impact": "high|medium|low",
+    "time": "X mins ago"
+  }
+]
+Make titles realistic about: Fed policy, USD strength, geopolitics, inflation, gold demand. In Amharic language.`
+        }]
+      })
+    });
+
+    const data = await response.json();
+    let text = data.content?.map(c => c.text || '').join('') || '[]';
+    text = text.replace(/```json|```/g, '').trim();
+    const news = JSON.parse(text);
+
+    container.innerHTML = news.map(n => `
+      <div class="news-card">
+        <div class="news-meta">
+          <span class="news-tag">${n.tag}</span>
+          <span class="news-time">🕐 ${n.time}</span>
+        </div>
+        <div class="news-title">${n.title}</div>
+        <div class="news-impact impact-${n.impact === 'high' ? 'high' : n.impact === 'medium' ? 'med' : 'low'}">
+          ${n.impact === 'high' ? '🔴 High Impact' : n.impact === 'medium' ? '🟡 Medium' : '🟢 Low Impact'}
+        </div>
+      </div>
+    `).join('');
+
+  } catch(e) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">❌</div><p>ስህተት ተፈጥሯል። እንደገና ሞክር።</p></div>';
+  }
+
+  btn.innerHTML = '<span>🔄</span> AI News ሎድ አድርግ';
+}
+
+// Auto-fill price in AI tab
+document.getElementById('tab-ai').addEventListener('click', () => {
+  const priceInput = document.getElementById('aiPrice');
+  if (!priceInput.value) priceInput.value = currentPrice.toFixed(2);
 });
-
-setInterval(fetchPrice, 30000);
 </script>
-
 </body>
 </html>
