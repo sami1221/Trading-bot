@@ -1,516 +1,513 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Gold Signal</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-      * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { background: #090a0f; }
-    </style>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
-</html>
-{
-  "name": "gold-signal-app",
-  "version": "1.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
-  },
-  "devDependencies": {
-    "@vitejs/plugin-react": "^4.2.0",
-    "vite": "^5.0.0"
-  }
-}
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>XAUUSD · SMC Signal</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Share+Tech+Mono&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:#131722;color:#d1d4dc;font-family:'Share Tech Mono',monospace;overflow-x:hidden;}
 
-export default defineConfig({
-  plugins: [react()],
-  base: './',
-})
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import App from './App.jsx'
+  #header{background:#1e222d;border-bottom:1px solid #2a2e39;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;}
+  #symbol{font-family:'Orbitron',monospace;font-size:16px;font-weight:900;color:#f0b90b;letter-spacing:0.1em;}
+  #price-box{text-align:right;}
+  #live-price{font-family:'Orbitron',monospace;font-size:20px;font-weight:700;color:#d1d4dc;}
+  #price-change{font-size:10px;margin-top:2px;}
+  .up{color:#26a69a;} .dn{color:#ef5350;}
 
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-)
-import { useState, useEffect, useRef, useCallback } from "react";
+  #signal-bar{padding:8px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #2a2e39;background:#1a1e2e;}
+  #sig-badge{font-family:'Orbitron',monospace;font-size:18px;font-weight:900;padding:5px 18px;border-radius:5px;letter-spacing:0.08em;}
+  .sig-buy{background:#26a69a22;color:#26a69a;border:2px solid #26a69a88;}
+  .sig-sell{background:#ef535022;color:#ef5350;border:2px solid #ef535088;}
+  .sig-wait{background:#f0b90b22;color:#f0b90b;border:2px solid #f0b90b44;}
+  #sig-info{font-size:10px;color:#6a7190;line-height:1.6;}
 
-const DERIV_WS_URL = "wss://ws.binaryws.com/websockets/v3?app_id=33s7rhCDcl3jz28FnVQ7w7";
-const API_TOKEN = "pat_ce6be0f36df7c9a3f154ec97af774967bfb59f2aa17949d889bf11222e1f466db";
+  #chart-wrap{position:relative;width:100%;background:#131722;}
+  canvas{display:block;width:100%;}
+
+  #levels{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;background:#1e222d;border-top:1px solid #2a2e39;}
+  .lv{padding:8px 6px;text-align:center;border-right:1px solid #2a2e39;}
+  .lv-l{font-size:8px;color:#4a5060;margin-bottom:3px;letter-spacing:0.1em;}
+  .lv-v{font-family:'Orbitron',monospace;font-size:10px;font-weight:700;}
+
+  #reasons{padding:10px 14px;background:#1a1e2e;border-top:1px solid #2a2e39;}
+  .reason{display:flex;align-items:center;gap:8px;padding:5px 8px;margin-bottom:4px;border-radius:4px;font-size:10px;}
+  .r-bull{background:#001a0d;border:1px solid #26a69a33;color:#26a69a;}
+  .r-bear{background:#1a0000;border:1px solid #ef535033;color:#ef5350;}
+
+  #status-dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:6px;}
+  .dot-live{background:#26a69a;animation:blink 1.5s infinite;}
+  .dot-err{background:#ef5350;}
+  .dot-conn{background:#f0b90b;animation:blink 1s infinite;}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
+
+  #footer{padding:6px;text-align:center;font-size:8px;color:#2a2e39;border-top:1px solid #2a2e39;}
+
+  #tf-bar{display:flex;gap:4px;padding:6px 14px;background:#1e222d;border-bottom:1px solid #2a2e39;}
+  .tf-btn{padding:3px 10px;font-size:9px;border:1px solid #2a2e39;background:none;color:#6a7190;border-radius:3px;cursor:pointer;font-family:'Share Tech Mono',monospace;}
+  .tf-btn.active{background:#f0b90b22;color:#f0b90b;border-color:#f0b90b66;}
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div>
+    <div id="symbol">XAUUSD</div>
+    <div style="font-size:9px;color:#4a5060;margin-top:2px;">
+      <span id="status-dot" class="dot-conn"></span>
+      <span id="status-txt">CONNECTING...</span>
+    </div>
+  </div>
+  <div id="price-box">
+    <div id="live-price">---</div>
+    <div id="price-change" style="color:#6a7190">--- (---%)</div>
+  </div>
+</div>
+
+<div id="signal-bar">
+  <div id="sig-badge" class="sig-wait">◉ WAIT</div>
+  <div id="sig-info">Collecting data...<br>Confidence: —</div>
+</div>
+
+<div id="tf-bar">
+  <button class="tf-btn active" onclick="setTF(10)" id="tf10">T10</button>
+  <button class="tf-btn" onclick="setTF(20)" id="tf20">T20</button>
+  <button class="tf-btn" onclick="setTF(50)" id="tf50">T50</button>
+  <span style="margin-left:auto;font-size:9px;color:#4a5060;" id="tick-count">0 ticks</span>
+</div>
+
+<div id="chart-wrap">
+  <canvas id="chart"></canvas>
+</div>
+
+<div id="levels">
+  <div class="lv"><div class="lv-l">ENTRY</div><div class="lv-v" id="lv-entry" style="color:#d1d4dc">---</div></div>
+  <div class="lv"><div class="lv-l">SL</div><div class="lv-v" id="lv-sl" style="color:#ef5350">---</div></div>
+  <div class="lv"><div class="lv-l">TP1</div><div class="lv-v" id="lv-tp1" style="color:#26a69a">---</div></div>
+  <div class="lv"><div class="lv-l">TP2</div><div class="lv-v" id="lv-tp2" style="color:#00e676">---</div></div>
+</div>
+
+<div id="reasons"></div>
+
+<div id="footer">⚠ EDUCATIONAL PURPOSE ONLY · NOT FINANCIAL ADVICE</div>
+
+<script>
+const API_TOKEN = "pat_142080823e3f40bf6fe541f348144cfb02ff0242422401b1ee565d9b77658136";
+const WS_URL = "wss://ws.binaryws.com/websockets/v3?app_id=1089";
 const SYMBOL = "frxXAUUSD";
 
-function calcEMA(values, period) {
-  if (values.length < period) return null;
-  const k = 2 / (period + 1);
-  let ema = values.slice(0, period).reduce((a, b) => a + b, 0) / period;
-  for (let i = period; i < values.length; i++) ema = values[i] * k + ema * (1 - k);
-  return ema;
-}
+let ticks = [], candles = [], currentTF = 10;
+let candleBuilder = {open:null,high:-Infinity,low:Infinity,close:null,count:0,time:null};
+let lastSig = null, ws = null;
 
-function calcRSI(closes, period = 14) {
-  if (closes.length < period + 1) return null;
-  let gains = 0, losses = 0;
-  for (let i = closes.length - period; i < closes.length; i++) {
-    const d = closes[i] - closes[i - 1];
-    if (d > 0) gains += d; else losses -= d;
-  }
-  const avgG = gains / period, avgL = losses / period;
-  return avgL === 0 ? 100 : 100 - 100 / (1 + avgG / avgL);
+// ── Canvas setup ──────────────────────────────────────────
+const canvas = document.getElementById('chart');
+const ctx = canvas.getContext('2d');
+function resizeCanvas(){
+  canvas.width = window.innerWidth * devicePixelRatio;
+  canvas.height = 280 * devicePixelRatio;
+  canvas.style.width = window.innerWidth + 'px';
+  canvas.style.height = '280px';
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+  drawChart();
 }
+window.addEventListener('resize', resizeCanvas);
 
-function findSwings(candles, left = 3, right = 3) {
-  const highs = [], lows = [];
-  for (let i = left; i < candles.length - right; i++) {
-    let isH = true, isL = true;
-    for (let j = i - left; j <= i + right; j++) {
-      if (j === i) continue;
-      if (candles[j].high >= candles[i].high) isH = false;
-      if (candles[j].low <= candles[i].low) isL = false;
+// ── SMC logic ─────────────────────────────────────────────
+function calcEMA(vals, p){
+  if(vals.length<p)return null;
+  const k=2/(p+1); let e=vals.slice(0,p).reduce((a,b)=>a+b,0)/p;
+  for(let i=p;i<vals.length;i++) e=vals[i]*k+e*(1-k);
+  return e;
+}
+function calcRSI(c,p=14){
+  if(c.length<p+1)return null;
+  let g=0,l=0;
+  for(let i=c.length-p;i<c.length;i++){const d=c[i]-c[i-1];d>0?g+=d:l-=d;}
+  const ag=g/p,al=l/p; return al===0?100:100-100/(1+ag/al);
+}
+function findSwings(cs,left=2,right=2){
+  const h=[],l=[];
+  for(let i=left;i<cs.length-right;i++){
+    let isH=true,isL=true;
+    for(let j=i-left;j<=i+right;j++){
+      if(j===i)continue;
+      if(cs[j].high>=cs[i].high)isH=false;
+      if(cs[j].low<=cs[i].low)isL=false;
     }
-    if (isH) highs.push({ price: candles[i].high, index: i });
-    if (isL) lows.push({ price: candles[i].low, index: i });
+    if(isH)h.push({price:cs[i].high,index:i});
+    if(isL)l.push({price:cs[i].low,index:i});
   }
-  return { highs, lows };
+  return{highs:h,lows:l};
+}
+function detectStructure(highs,lows){
+  let bias="NEUTRAL",event=null;
+  if(highs.length>=2){
+    const l=highs[highs.length-1],p=highs[highs.length-2];
+    if(l.price>p.price){bias="BULLISH";event="BOS";}
+    else if(l.price<p.price){bias="BEARISH";event="CHoCH";}
+  }
+  if(lows.length>=2){
+    const l=lows[lows.length-1],p=lows[lows.length-2];
+    if(l.price<p.price&&bias!=="BULLISH"){bias="BEARISH";event="BOS";}
+    else if(l.price>p.price){bias="BULLISH";event="CHoCH";}
+  }
+  return{bias,event};
+}
+function findOrderBlocks(cs){
+  const obs=[];
+  for(let i=2;i<cs.length-2;i++){
+    const c=cs[i],nx=cs[i+1];
+    const body=Math.abs(c.close-c.open),nxBody=Math.abs(nx.close-nx.open);
+    if(c.close<c.open&&nx.close>nx.open&&nxBody>body*1.3)
+      obs.push({type:"BULL",top:c.open,bottom:c.close,index:i});
+    if(c.close>c.open&&nx.close<nx.open&&nxBody>body*1.3)
+      obs.push({type:"BEAR",top:c.close,bottom:c.open,index:i});
+  }
+  return obs.slice(-6);
+}
+function getPD(cs){
+  const n=cs.slice(-50);
+  const hi=Math.max(...n.map(c=>c.high)),lo=Math.min(...n.map(c=>c.low));
+  const cur=cs[cs.length-1].close,pos=(cur-lo)/(hi-lo||1);
+  return{hi,lo,pos:+(pos*100).toFixed(1),zone:pos>0.618?"PREMIUM":pos<0.382?"DISCOUNT":"EQUILIBRIUM"};
+}
+function runSMC(cs){
+  if(cs.length<20)return null;
+  const closes=cs.map(c=>c.close);
+  const cur=closes[closes.length-1],prev=closes[closes.length-2];
+  const{highs,lows}=findSwings(cs);
+  const{bias,event}=detectStructure(highs,lows);
+  const obs=findOrderBlocks(cs);
+  const pd=getPD(cs);
+  const rsi=calcRSI(closes);
+  const ema9=calcEMA(closes,9),ema21=calcEMA(closes,21);
+  let bull=0,bear=0,reasons=[];
+  if(bias==="BULLISH"){bull+=3;reasons.push({t:`${event} — Bullish Structure`,s:"bull"});}
+  else if(bias==="BEARISH"){bear+=3;reasons.push({t:`${event} — Bearish Structure`,s:"bear"});}
+  obs.forEach(ob=>{
+    if(ob.type==="BULL"&&cur>=ob.bottom-0.3&&cur<=ob.top+0.3){bull+=3;reasons.push({t:"Price at Bullish Order Block",s:"bull"});}
+    if(ob.type==="BEAR"&&cur<=ob.top+0.3&&cur>=ob.bottom-0.3){bear+=3;reasons.push({t:"Price at Bearish Order Block",s:"bear"});}
+  });
+  if(pd.zone==="DISCOUNT"){bull+=2;reasons.push({t:"Discount Zone <38.2%",s:"bull"});}
+  if(pd.zone==="PREMIUM"){bear+=2;reasons.push({t:"Premium Zone >61.8%",s:"bear"});}
+  if(rsi!==null){
+    if(rsi<35){bull+=1;reasons.push({t:`RSI Oversold (${rsi.toFixed(1)})`,s:"bull"});}
+    if(rsi>65){bear+=1;reasons.push({t:`RSI Overbought (${rsi.toFixed(1)})`,s:"bear"});}
+  }
+  if(ema9&&ema21){
+    if(ema9>ema21&&cur>ema9){bull+=1;reasons.push({t:"EMA9>EMA21 Bullish",s:"bull"});}
+    if(ema9<ema21&&cur<ema9){bear+=1;reasons.push({t:"EMA9<EMA21 Bearish",s:"bear"});}
+  }
+  const net=bull-bear,total=bull+bear||1;
+  const confidence=Math.round((Math.max(bull,bear)/total)*100);
+  let signal="WAIT";
+  if(net>=3)signal="BUY"; else if(net<=-3)signal="SELL";
+  const atr=cs.slice(-14).reduce((acc,c,i,arr)=>{
+    if(i===0)return acc;
+    return acc+Math.max(c.high-c.low,Math.abs(c.high-arr[i-1].close),Math.abs(c.low-arr[i-1].close));
+  },0)/13;
+  const sl=signal==="BUY"?+(cur-atr*1.5).toFixed(2):+(cur+atr*1.5).toFixed(2);
+  const tp1=signal==="BUY"?+(cur+atr*2).toFixed(2):+(cur-atr*2).toFixed(2);
+  const tp2=signal==="BUY"?+(cur+atr*3.5).toFixed(2):+(cur-atr*3.5).toFixed(2);
+  return{signal,confidence,bull,bear,reasons,entry:+cur.toFixed(2),sl,tp1,tp2,pd,rsi:rsi?.toFixed(1),obs,highs,lows,event,bias,atr:+atr.toFixed(2),change:+((cur-prev)/prev*100).toFixed(3)};
 }
 
-function detectStructure(highs, lows) {
-  let bias = "NEUTRAL", event = null;
-  if (highs.length >= 2) {
-    const l = highs[highs.length - 1], p = highs[highs.length - 2];
-    if (l.price > p.price) { bias = "BULLISH"; event = "BOS ↑"; }
-    else if (l.price < p.price) { bias = "BEARISH"; event = "CHOCH ↓"; }
-  }
-  if (lows.length >= 2) {
-    const l = lows[lows.length - 1], p = lows[lows.length - 2];
-    if (l.price < p.price && bias !== "BULLISH") { bias = "BEARISH"; event = "BOS ↓"; }
-    else if (l.price > p.price) { bias = "BULLISH"; event = "CHOCH ↑"; }
-  }
-  return { bias, event };
-}
+// ── Draw Chart ────────────────────────────────────────────
+function drawChart(){
+  const W=canvas.width/devicePixelRatio, H=canvas.height/devicePixelRatio;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle="#131722"; ctx.fillRect(0,0,W,H);
+  if(candles.length<2)return;
 
-function findOrderBlocks(candles) {
-  const obs = [];
-  for (let i = 3; i < candles.length - 2; i++) {
-    const c = candles[i], nx = candles[i + 1];
-    const body = Math.abs(c.close - c.open);
-    const nxBody = Math.abs(nx.close - nx.open);
-    if (c.close < c.open && nx.close > nx.open && nxBody > body * 1.4)
-      obs.push({ type: "BULL", top: c.open, bottom: c.close, index: i });
-    if (c.close > c.open && nx.close < nx.open && nxBody > body * 1.4)
-      obs.push({ type: "BEAR", top: c.close, bottom: c.open, index: i });
-  }
-  return obs.slice(-5);
-}
+  const display=candles.slice(-60);
+  const pad={l:8,r:60,t:20,b:20};
+  const cW=W-pad.l-pad.r, cH=H-pad.t-pad.b;
+  const n=display.length;
+  const cw=Math.max(4,Math.floor(cW/n)-1);
+  const gap=Math.max(1,Math.floor(cW/n)-cw);
 
-function findFVGs(candles) {
-  const fvgs = [];
-  for (let i = 1; i < candles.length - 1; i++) {
-    if (candles[i + 1].low > candles[i - 1].high)
-      fvgs.push({ type: "BULL", top: candles[i + 1].low, bottom: candles[i - 1].high });
-    if (candles[i + 1].high < candles[i - 1].low)
-      fvgs.push({ type: "BEAR", top: candles[i - 1].low, bottom: candles[i + 1].high });
-  }
-  return fvgs.slice(-3);
-}
+  let hi=Math.max(...display.map(c=>c.high));
+  let lo=Math.min(...display.map(c=>c.low));
+  const range=hi-lo||1;
+  hi+=range*0.05; const lo2=lo-range*0.05;
+  const totalRange=hi-lo2;
+  const toY=p=>pad.t+((hi-p)/totalRange)*cH;
+  const toX=i=>pad.l+i*(cw+gap)+cw/2;
 
-function getPD(candles) {
-  const n = candles.slice(-50);
-  const hi = Math.max(...n.map(c => c.high));
-  const lo = Math.min(...n.map(c => c.low));
-  const cur = candles[candles.length - 1].close;
-  const pos = (cur - lo) / (hi - lo || 1);
-  return {
-    hi, lo,
-    pos: +(pos * 100).toFixed(1),
-    zone: pos > 0.618 ? "PREMIUM" : pos < 0.382 ? "DISCOUNT" : "EQUILIBRIUM"
+  // Grid
+  ctx.strokeStyle="#1e222d"; ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){
+    const y=pad.t+i*(cH/4);
+    ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(W-pad.r,y); ctx.stroke();
+    const price=(hi-(i/4)*totalRange).toFixed(2);
+    ctx.fillStyle="#4a5060"; ctx.font="9px 'Share Tech Mono'";
+    ctx.fillText(price, W-pad.r+4, y+3);
+  }
+
+  // Order Blocks (behind candles)
+  if(lastSig){
+    lastSig.obs.forEach(ob=>{
+      const startIdx=display.findIndex((_,i)=>i===ob.index-(candles.length-display.length));
+      if(startIdx<0)return;
+      const x=pad.l+startIdx*(cw+gap);
+      const y1=toY(ob.top), y2=toY(ob.bottom);
+      ctx.fillStyle=ob.type==="BULL"?"rgba(38,166,154,0.12)":"rgba(239,83,80,0.12)";
+      ctx.fillRect(x,y1,cW-startIdx*(cw+gap),y2-y1);
+      ctx.strokeStyle=ob.type==="BULL"?"rgba(38,166,154,0.5)":"rgba(239,83,80,0.5)";
+      ctx.lineWidth=1; ctx.setLineDash([3,3]);
+      ctx.strokeRect(x,y1,cW-startIdx*(cw+gap),y2-y1);
+      ctx.setLineDash([]);
+      ctx.fillStyle=ob.type==="BULL"?"#26a69a":"#ef5350";
+      ctx.font="bold 8px 'Share Tech Mono'";
+      ctx.fillText(ob.type==="BULL"?"OB↑":"OB↓", x+3, y1-3);
+    });
+  }
+
+  // EMA lines
+  const closes=display.map(c=>c.close);
+  const ema9line=[], ema21line=[];
+  for(let i=0;i<display.length;i++){
+    const slice=closes.slice(0,i+1);
+    const e9=calcEMA(slice,9), e21=calcEMA(slice,21);
+    if(e9)ema9line.push({x:toX(i),y:toY(e9)});
+    if(e21)ema21line.push({x:toX(i),y:toY(e21)});
+  }
+  const drawLine=(pts,col)=>{
+    if(pts.length<2)return;
+    ctx.beginPath(); ctx.strokeStyle=col; ctx.lineWidth=1.2;
+    pts.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));
+    ctx.stroke();
   };
-}
+  drawLine(ema9line,"#f0b90b88");
+  drawLine(ema21line,"#7b61ff88");
 
-function runSMC(candles) {
-  if (candles.length < 30) return null;
-  const closes = candles.map(c => c.close);
-  const current = closes[closes.length - 1];
-  const prev = closes[closes.length - 2];
-  const { highs, lows } = findSwings(candles);
-  const { bias, event } = detectStructure(highs, lows);
-  const obs = findOrderBlocks(candles);
-  const fvgs = findFVGs(candles);
-  const pd = getPD(candles);
-  const rsi = calcRSI(closes);
-  const ema9 = calcEMA(closes, 9);
-  const ema21 = calcEMA(closes, 21);
-
-  let bull = 0, bear = 0;
-  const reasons = [];
-
-  if (bias === "BULLISH") { bull += 3; reasons.push({ t: `${event} — Bullish Structure`, s: "bull" }); }
-  else if (bias === "BEARISH") { bear += 3; reasons.push({ t: `${event} — Bearish Structure`, s: "bear" }); }
-
-  obs.forEach(ob => {
-    if (ob.type === "BULL" && current >= ob.bottom - 0.5 && current <= ob.top + 0.5)
-      { bull += 3; reasons.push({ t: "Price at Bullish Order Block", s: "bull" }); }
-    if (ob.type === "BEAR" && current <= ob.top + 0.5 && current >= ob.bottom - 0.5)
-      { bear += 3; reasons.push({ t: "Price at Bearish Order Block", s: "bear" }); }
+  // Candles
+  display.forEach((c,i)=>{
+    const x=pad.l+i*(cw+gap);
+    const bull=c.close>=c.open;
+    const col=bull?"#26a69a":"#ef5350";
+    const oh=toY(Math.max(c.open,c.close));
+    const cl=toY(Math.min(c.open,c.close));
+    const bodyH=Math.max(1,cl-oh);
+    // Wick
+    ctx.strokeStyle=col; ctx.lineWidth=1;
+    ctx.beginPath();
+    ctx.moveTo(x+cw/2,toY(c.high));
+    ctx.lineTo(x+cw/2,toY(c.low));
+    ctx.stroke();
+    // Body
+    ctx.fillStyle=col;
+    ctx.fillRect(x,oh,cw,bodyH);
   });
 
-  fvgs.forEach(f => {
-    if (f.type === "BULL" && current >= f.bottom && current <= f.top)
-      { bull += 2; reasons.push({ t: "Inside Bullish FVG — Demand Zone", s: "bull" }); }
-    if (f.type === "BEAR" && current >= f.bottom && current <= f.top)
-      { bear += 2; reasons.push({ t: "Inside Bearish FVG — Supply Zone", s: "bear" }); }
-  });
-
-  if (pd.zone === "DISCOUNT") { bull += 2; reasons.push({ t: "Price in Discount Zone < 38.2%", s: "bull" }); }
-  if (pd.zone === "PREMIUM") { bear += 2; reasons.push({ t: "Price in Premium Zone > 61.8%", s: "bear" }); }
-
-  if (rsi !== null) {
-    if (rsi < 35) { bull += 1; reasons.push({ t: `RSI Oversold (${rsi.toFixed(1)})`, s: "bull" }); }
-    if (rsi > 65) { bear += 1; reasons.push({ t: `RSI Overbought (${rsi.toFixed(1)})`, s: "bear" }); }
+  // BOS / CHoCH labels
+  if(lastSig&&lastSig.event){
+    // draw BOS line at last swing high/low
+    if(lastSig.highs.length>=2){
+      const sw=lastSig.highs[lastSig.highs.length-1];
+      const dispIdx=sw.index-(candles.length-display.length);
+      if(dispIdx>=0&&dispIdx<display.length){
+        const y=toY(sw.price);
+        ctx.strokeStyle="#f0b90b88"; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+        ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(W-pad.r,y); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle="#f0b90b"; ctx.font="bold 9px 'Share Tech Mono'";
+        const label=lastSig.bias==="BULLISH"?"BOS↑":"CHoCH";
+        ctx.fillText(label, toX(dispIdx)-10, y-5);
+      }
+    }
+    if(lastSig.lows.length>=2){
+      const sw=lastSig.lows[lastSig.lows.length-1];
+      const dispIdx=sw.index-(candles.length-display.length);
+      if(dispIdx>=0&&dispIdx<display.length){
+        const y=toY(sw.price);
+        ctx.strokeStyle="#7b61ff88"; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+        ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(W-pad.r,y); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle="#7b61ff"; ctx.font="bold 9px 'Share Tech Mono'";
+        const label=lastSig.bias==="BEARISH"?"BOS↓":"CHoCH";
+        ctx.fillText(label, toX(dispIdx)-10, y+12);
+      }
+    }
   }
 
-  if (ema9 && ema21) {
-    if (ema9 > ema21 && current > ema9) { bull += 1; reasons.push({ t: "EMA9 > EMA21 — Bullish Trend", s: "bull" }); }
-    if (ema9 < ema21 && current < ema9) { bear += 1; reasons.push({ t: "EMA9 < EMA21 — Bearish Trend", s: "bear" }); }
+  // BUY / SELL signal on last candle
+  if(lastSig&&lastSig.signal!=="WAIT"){
+    const i=display.length-1;
+    const c=display[i];
+    const x=toX(i);
+    const isBuy=lastSig.signal==="BUY";
+    const col=isBuy?"#26a69a":"#ef5350";
+    const arrowY=isBuy?toY(c.low)+22:toY(c.high)-22;
+    // Arrow
+    ctx.fillStyle=col;
+    ctx.beginPath();
+    if(isBuy){
+      ctx.moveTo(x,toY(c.low)+8);
+      ctx.lineTo(x-7,toY(c.low)+18);
+      ctx.lineTo(x+7,toY(c.low)+18);
+    } else {
+      ctx.moveTo(x,toY(c.high)-8);
+      ctx.lineTo(x-7,toY(c.high)-18);
+      ctx.lineTo(x+7,toY(c.high)-18);
+    }
+    ctx.fill();
+    // Label badge
+    const lW=34,lH=16,lX=x-lW/2,lY=isBuy?toY(c.low)+22:toY(c.high)-40;
+    ctx.fillStyle=col;
+    ctx.beginPath();
+    ctx.roundRect(lX,lY,lW,lH,3);
+    ctx.fill();
+    ctx.fillStyle="#fff"; ctx.font="bold 9px 'Orbitron'";
+    ctx.textAlign="center";
+    ctx.fillText(lastSig.signal,x,lY+11);
+    ctx.textAlign="left";
   }
 
-  const total = bull + bear || 1;
-  const net = bull - bear;
-  const confidence = Math.round((Math.max(bull, bear) / total) * 100);
-  let signal = "WAIT";
-  if (net >= 3) signal = "BUY";
-  else if (net <= -3) signal = "SELL";
-
-  const atr = candles.slice(-14).reduce((acc, c, i, arr) => {
-    if (i === 0) return acc;
-    return acc + Math.max(c.high - c.low, Math.abs(c.high - arr[i-1].close), Math.abs(c.low - arr[i-1].close));
-  }, 0) / 13;
-
-  const sl  = signal === "BUY" ? +(current - atr * 1.5).toFixed(2) : +(current + atr * 1.5).toFixed(2);
-  const tp1 = signal === "BUY" ? +(current + atr * 2).toFixed(2)   : +(current - atr * 2).toFixed(2);
-  const tp2 = signal === "BUY" ? +(current + atr * 3.5).toFixed(2) : +(current - atr * 3.5).toFixed(2);
-
-  return {
-    signal, confidence, bull, bear, reasons,
-    entry: +current.toFixed(2), sl, tp1, tp2,
-    rr: +((atr * 2) / (atr * 1.5)).toFixed(2),
-    pd, rsi: rsi?.toFixed(1),
-    ema9: ema9?.toFixed(2), ema21: ema21?.toFixed(2),
-    change: +((current - prev) / prev * 100).toFixed(3),
-    atr: +atr.toFixed(2), obs, fvgs,
-  };
-}
-
-function Sparkline({ prices, signal }) {
-  if (prices.length < 2) return null;
-  const w = 320, h = 60;
-  const min = Math.min(...prices), max = Math.max(...prices), range = max - min || 1;
-  const pts = prices.map((p, i) => `${(i / (prices.length - 1)) * w},${h - ((p - min) / range) * h}`).join(" ");
-  const col = signal === "BUY" ? "#00e676" : signal === "SELL" ? "#ff4444" : "#b8975a";
-  return (
-    <svg width="100%" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ display: "block" }}>
-      <defs>
-        <linearGradient id="sg" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={col} stopOpacity="0.3" />
-          <stop offset="100%" stopColor={col} stopOpacity="0.02" />
-        </linearGradient>
-      </defs>
-      <polygon points={`0,${h} ${pts} ${w},${h}`} fill="url(#sg)" />
-      <polyline points={pts} fill="none" stroke={col} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-export default function App() {
-  const [status, setStatus]       = useState("connecting");
-  const [ticks, setTicks]         = useState([]);
-  const [candles, setCandles]     = useState([]);
-  const [sig, setSig]             = useState(null);
-  const [livePrice, setLivePrice] = useState(null);
-  const [liveBid, setLiveBid]     = useState(null);
-  const [liveAsk, setLiveAsk]     = useState(null);
-  const [history, setHistory]     = useState([]);
-  const [tab, setTab]             = useState("signal");
-  const [tickCount, setTickCount] = useState(0);
-  const candleRef = useRef({ open: null, high: -Infinity, low: Infinity, close: null, count: 0, startTime: null });
-  const CANDLE_TICKS = 10;
-
-  const buildCandle = useCallback((price, time) => {
-    const c = candleRef.current;
-    if (c.open === null) {
-      Object.assign(c, { open: price, high: price, low: price, close: price, count: 1, startTime: time });
-      return;
-    }
-    c.high = Math.max(c.high, price);
-    c.low  = Math.min(c.low, price);
-    c.close = price;
-    c.count++;
-    if (c.count >= CANDLE_TICKS) {
-      const newCandle = { open: c.open, high: c.high, low: c.low, close: c.close, time: c.startTime };
-      setCandles(prev => {
-        const updated = [...prev, newCandle].slice(-100);
-        const s = runSMC(updated);
-        if (s) {
-          setSig(s);
-          if (s.signal !== "WAIT")
-            setHistory(h => [{ ...s, time: new Date() }, ...h].slice(0, 15));
-        }
-        return updated;
-      });
-      Object.assign(c, { open: null, high: -Infinity, low: Infinity, close: null, count: 0 });
-    }
-  }, []);
-
-  useEffect(() => {
-    let ws, pingInterval;
-    const connect = () => {
-      ws = new WebSocket(DERIV_WS_URL);
-      ws.onopen = () => {
-        setStatus("connecting");
-        ws.send(JSON.stringify({ authorize: API_TOKEN }));
-      };
-      ws.onmessage = (e) => {
-        const msg = JSON.parse(e.data);
-        if (msg.msg_type === "authorize") {
-          if (msg.error) { setStatus("error"); return; }
-          ws.send(JSON.stringify({ ticks: SYMBOL, subscribe: 1 }));
-          setStatus("live");
-        }
-        if (msg.msg_type === "tick") {
-          const t = msg.tick;
-          setLivePrice(t.quote);
-          setLiveBid(+(t.bid || t.quote - 0.12).toFixed(2));
-          setLiveAsk(+(t.ask || t.quote + 0.12).toFixed(2));
-          setTicks(prev => [...prev.slice(-299), t.quote]);
-          setTickCount(n => n + 1);
-          buildCandle(t.quote, t.epoch * 1000);
-        }
-      };
-      ws.onerror = () => setStatus("error");
-      ws.onclose = () => setTimeout(connect, 3000);
-      pingInterval = setInterval(() => {
-        if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ ping: 1 }));
-      }, 30000);
+  // SL / TP lines
+  if(lastSig&&lastSig.signal!=="WAIT"){
+    const drawLevel=(price,col,label)=>{
+      const y=toY(price);
+      if(y<pad.t||y>H-pad.b)return;
+      ctx.strokeStyle=col+"99"; ctx.lineWidth=1; ctx.setLineDash([5,5]);
+      ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(W-pad.r,y); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle=col; ctx.font="8px 'Share Tech Mono'";
+      ctx.fillText(label,W-pad.r+4,y+3);
     };
-    connect();
-    return () => { clearInterval(pingInterval); ws?.close(); };
-  }, [buildCandle]);
+    drawLevel(lastSig.sl,"#ef5350","SL");
+    drawLevel(lastSig.tp1,"#26a69a","TP1");
+    drawLevel(lastSig.tp2,"#00e676","TP2");
+  }
 
-  const sigColor = !sig ? "#b8975a" : sig.signal === "BUY" ? "#00e676" : sig.signal === "SELL" ? "#ff4444" : "#b8975a";
-  const sigBg = !sig ? "#13100a" : sig.signal === "BUY" ? "linear-gradient(135deg,#001a0d,#002210)" : sig.signal === "SELL" ? "linear-gradient(135deg,#1a0000,#220000)" : "linear-gradient(135deg,#13100a,#1a1408)";
-
-  return (
-    <div style={{ minHeight: "100vh", background: "#090a0f", color: "#d4c5a0", fontFamily: "'Share Tech Mono', monospace" }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        .pulse { animation: p 1.5s ease-in-out infinite; }
-        @keyframes p { 0%,100%{opacity:1} 50%{opacity:0.25} }
-        .tab-b { cursor:pointer; padding:8px 14px; font-size:10px; letter-spacing:0.1em; border:none; background:none; transition:all 0.2s; font-family:'Share Tech Mono',monospace; color:inherit; }
-      `}</style>
-
-      <div style={{ background: "#0b0d14", borderBottom: "1px solid #b8975a22", padding: "14px 16px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-          <div>
-            <div style={{ fontFamily: "'Orbitron'", fontSize: "22px", fontWeight: 900, color: "#b8975a", letterSpacing: "0.12em" }}>XAUUSD</div>
-            <div style={{ fontSize: "9px", color: "#4a3f2a", letterSpacing: "0.15em", marginTop: "2px" }}>GOLD · 5M · SMC · LIVE</div>
-          </div>
-          <div style={{ textAlign: "right" }}>
-            {livePrice ? (
-              <>
-                <div style={{ fontFamily: "'Orbitron'", fontSize: "24px", fontWeight: 700, color: "#e8d5a0" }}>{livePrice.toFixed(2)}</div>
-                <div style={{ fontSize: "9px", color: "#4a3f2a", marginTop: "2px" }}>
-                  B: <span style={{ color: "#66cc88" }}>{liveBid}</span> · A: <span style={{ color: "#cc6666" }}>{liveAsk}</span>
-                </div>
-              </>
-            ) : (
-              <div style={{ fontFamily: "'Orbitron'", fontSize: "18px", color: "#3a3028" }}>---</div>
-            )}
-          </div>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "8px" }}>
-          <div style={{ width: "7px", height: "7px", borderRadius: "50%", background: status === "live" ? "#00e676" : status === "error" ? "#ff4444" : "#ffd740" }} className="pulse" />
-          <span style={{ fontSize: "9px", color: "#4a3f2a", letterSpacing: "0.1em" }}>
-            {status === "live" ? `LIVE · ${tickCount} ticks · ${candles.length} candles` : status === "error" ? "ERROR — RETRYING..." : "CONNECTING..."}
-          </span>
-        </div>
-      </div>
-
-      <div style={{ background: "#0b0c11", borderBottom: "1px solid #1a1812", padding: "10px 14px 6px" }}>
-        <Sparkline prices={ticks.slice(-80)} signal={sig?.signal} />
-      </div>
-
-      {status === "error" && (
-        <div style={{ margin: "16px", background: "#1a0000", border: "1px solid #ff444433", borderRadius: "8px", padding: "16px", textAlign: "center" }}>
-          <div style={{ color: "#ff6666", fontSize: "13px" }}>⚠ Connection Failed</div>
-          <div style={{ color: "#6a3a3a", fontSize: "10px", marginTop: "6px" }}>Token expired or invalid.</div>
-        </div>
-      )}
-
-      {status === "live" && candles.length < 5 && (
-        <div style={{ margin: "16px", background: "#13100a", border: "1px solid #b8975a22", borderRadius: "8px", padding: "20px", textAlign: "center" }}>
-          <div style={{ color: "#b8975a", fontSize: "12px", letterSpacing: "0.1em" }} className="pulse">COLLECTING LIVE DATA...</div>
-          <div style={{ color: "#4a3f2a", fontSize: "10px", marginTop: "6px" }}>{tickCount} ticks · {candles.length}/5 candles</div>
-          <div style={{ marginTop: "10px", height: "3px", background: "#1a1812", borderRadius: "2px" }}>
-            <div style={{ height: "100%", width: `${(candles.length / 5) * 100}%`, background: "#b8975a", borderRadius: "2px", transition: "width 0.5s" }} />
-          </div>
-        </div>
-      )}
-
-      {sig && (
-        <>
-          <div style={{ margin: "12px 14px", borderRadius: "10px", background: sigBg, border: `2px solid ${sigColor}44` }}>
-            <div style={{ padding: "18px", textAlign: "center" }}>
-              <div style={{ fontSize: "9px", color: "#4a3f2a", letterSpacing: "0.2em", marginBottom: "6px" }}>SMC SIGNAL · LIVE</div>
-              <div style={{ fontFamily: "'Orbitron'", fontSize: "42px", fontWeight: 900, color: sigColor, letterSpacing: "0.08em", lineHeight: 1, textShadow: `0 0 25px ${sigColor}55` }}>
-                {sig.signal === "BUY" ? "▲ BUY" : sig.signal === "SELL" ? "▼ SELL" : "◉ WAIT"}
-              </div>
-              <div style={{ fontSize: "10px", color: sigColor + "99", marginTop: "5px" }}>{sig.confidence}% CONF · {sig.pd.zone}</div>
-              <div style={{ marginTop: "10px", height: "4px", background: "#ffffff10", borderRadius: "2px", overflow: "hidden" }}>
-                <div style={{ height: "100%", width: `${sig.confidence}%`, background: sigColor, transition: "width 0.6s" }} />
-              </div>
-            </div>
-
-            {sig.signal !== "WAIT" && (
-              <>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", borderTop: `1px solid ${sigColor}22` }}>
-                  {[
-                    { l: "ENTRY", v: sig.entry.toFixed(2), c: "#d4c5a0" },
-                    { l: "SL",    v: sig.sl.toFixed(2),    c: "#ff7777" },
-                    { l: "TP1",   v: sig.tp1.toFixed(2),   c: "#77ff99" },
-                    { l: "TP2",   v: sig.tp2.toFixed(2),   c: "#00e676" },
-                  ].map(x => (
-                    <div key={x.l} style={{ padding: "10px 4px", textAlign: "center", borderRight: `1px solid ${sigColor}15` }}>
-                      <div style={{ fontSize: "8px", color: "#4a3f2a", marginBottom: "3px" }}>{x.l}</div>
-                      <div style={{ fontFamily: "'Orbitron'", fontSize: "10px", color: x.c, fontWeight: 700 }}>{x.v}</div>
-                    </div>
-                  ))}
-                </div>
-                <div style={{ padding: "7px", textAlign: "center", fontSize: "9px", color: "#4a3f2a", borderTop: `1px solid ${sigColor}15` }}>
-                  RR = 1:{sig.rr} · ATR {sig.atr}
-                </div>
-              </>
-            )}
-          </div>
-
-          <div style={{ display: "flex", borderBottom: "1px solid #1a1812", margin: "0 14px" }}>
-            {["signal", "zones", "history"].map(t => (
-              <button key={t} className="tab-b" onClick={() => setTab(t)}
-                style={{ color: tab === t ? "#b8975a" : "#3a3028", borderBottom: tab === t ? "2px solid #b8975a" : "2px solid transparent", textTransform: "uppercase" }}>
-                {t === "signal" ? "Reasons" : t === "zones" ? "SMC Zones" : "History"}
-              </button>
-            ))}
-          </div>
-
-          <div style={{ padding: "12px 14px 40px" }}>
-            {tab === "signal" && (
-              <div>
-                <div style={{ marginBottom: "10px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", marginBottom: "4px" }}>
-                    <span style={{ color: "#00e676" }}>BULL {sig.bull}pts</span>
-                    <span style={{ color: "#ff4444" }}>BEAR {sig.bear}pts</span>
-                  </div>
-                  <div style={{ height: "5px", background: "#ff444422", borderRadius: "3px", overflow: "hidden" }}>
-                    <div style={{ width: `${(sig.bull / (sig.bull + sig.bear || 1)) * 100}%`, height: "100%", background: "#00e676", transition: "width 0.6s" }} />
-                  </div>
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
-                  {sig.reasons.length === 0 && <div style={{ color: "#3a3028", textAlign: "center", padding: "20px", fontSize: "11px" }}>No strong confluences yet...</div>}
-                  {sig.reasons.map((r, i) => (
-                    <div key={i} style={{ display: "flex", gap: "8px", alignItems: "center", padding: "7px 10px", background: r.s === "bull" ? "#001a0d" : "#1a0000", border: `1px solid ${r.s === "bull" ? "#00e67622" : "#ff444422"}`, borderRadius: "5px" }}>
-                      <span style={{ fontSize: "13px" }}>{r.s === "bull" ? "▲" : "▼"}</span>
-                      <span style={{ fontSize: "10px", color: r.s === "bull" ? "#66cc88" : "#cc6666" }}>{r.t}</span>
-                    </div>
-                  ))}
-                </div>
-                <div style={{ marginTop: "12px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
-                  <div style={{ background: "#0f0d09", border: "1px solid #1a1812", borderRadius: "6px", padding: "8px 10px" }}>
-                    <div style={{ fontSize: "8px", color: "#4a3f2a", marginBottom: "3px" }}>RSI (14)</div>
-                    <div style={{ fontFamily: "'Orbitron'", fontSize: "14px", color: +sig.rsi > 65 ? "#ff6666" : +sig.rsi < 35 ? "#66cc88" : "#d4c5a0" }}>{sig.rsi || "—"}</div>
-                  </div>
-                  <div style={{ background: "#0f0d09", border: "1px solid #1a1812", borderRadius: "6px", padding: "8px 10px" }}>
-                    <div style={{ fontSize: "8px", color: "#4a3f2a", marginBottom: "3px" }}>PD ZONE</div>
-                    <div style={{ fontFamily: "'Orbitron'", fontSize: "11px", color: sig.pd.zone === "DISCOUNT" ? "#66cc88" : sig.pd.zone === "PREMIUM" ? "#ff6666" : "#b8975a" }}>{sig.pd.zone}</div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {tab === "zones" && (
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                <div style={{ background: "#0f0d09", border: "1px solid #1a1812", borderRadius: "7px", padding: "10px 12px" }}>
-                  <div style={{ fontSize: "9px", color: "#4a3f2a", marginBottom: "6px" }}>RANGE (50 CANDLES)</div>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", marginBottom: "5px" }}>
-                    <span style={{ color: "#ff7777" }}>H: {sig.pd.hi.toFixed(2)}</span>
-                    <span style={{ color: "#b8975a" }}>{sig.pd.pos}%</span>
-                    <span style={{ color: "#77cc88" }}>L: {sig.pd.lo.toFixed(2)}</span>
-                  </div>
-                  <div style={{ position: "relative", height: "10px", background: "linear-gradient(90deg,#66cc8822,#b8975a22,#ff666622)", borderRadius: "5px" }}>
-                    <div style={{ position: "absolute", left: `${sig.pd.pos}%`, top: "-2px", width: "3px", height: "14px", background: "#fff", borderRadius: "2px", transform: "translateX(-50%)", transition: "left 0.5s" }} />
-                  </div>
-                </div>
-                <div style={{ background: "#0f0d09", border: "1px solid #1a1812", borderRadius: "7px", padding: "10px 12px" }}>
-                  <div style={{ fontSize: "9px", color: "#4a3f2a", marginBottom: "6px" }}>ORDER BLOCKS</div>
-                  {sig.obs.length === 0 && <div style={{ color: "#3a3028", fontSize: "10px" }}>None detected</div>}
-                  {sig.obs.map((ob, i) => (
-                    <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: "1px solid #1a1812", fontSize: "10px" }}>
-                      <span style={{ color: ob.type === "BULL" ? "#66cc88" : "#cc6666" }}>{ob.type === "BULL" ? "Bullish OB" : "Bearish OB"}</span>
-                      <span style={{ color: "#5a4f3a" }}>{ob.bottom.toFixed(2)} – {ob.top.toFixed(2)}</span>
-                    </div>
-                  ))}
-                </div>
-                <div style={{ background: "#0f0d09", border: "1px solid #1a1812", borderRadius: "7px", padding: "10px 12px" }}>
-                  <div style={{ fontSize: "9px", color: "#4a3f2a", marginBottom: "6px" }}>FAIR VALUE GAPS</div>
-                  {sig.fvgs.length === 0 && <div style={{ color: "#3a3028", fontSize: "10px" }}>None detected</div>}
-                  {sig.fvgs.map((f, i) => (
-                    <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: "1px solid #1a1812", fontSize: "10px" }}>
-                      <span style={{ color: f.type === "BULL" ? "#66cc88" : "#cc6666" }}>{f.type} FVG</span>
-                      <span style={{ color: "#5a4f3a" }}>{f.bottom.toFixed(2)} – {f.top.toFixed(2)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {tab === "history" && (
-              <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
-                {history.length === 0 && <div style={{ color: "#3a3028", textAlign: "center", padding: "20px", fontSize: "10px" }}>Waiting for signals...</div>}
-                {history.map((h, i) => (
-                  <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 10px", background: "#0f0d09", border: `1px solid ${h.signal === "BUY" ? "#00e67622" : "#ff444422"}`, borderRadius: "6px" }}>
-                    <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                      <span style={{ fontFamily: "'Orbitron'", fontSize: "12px", fontWeight: 700, color: h.signal === "BUY" ? "#00e676" : "#ff4444" }}>{h.signal === "BUY" ? "▲" : "▼"} {h.signal}</span>
-                      <span style={{ fontSize: "11px", color: "#8a7a5a" }}>{h.entry?.toFixed(2)}</span>
-                    </div>
-                    <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: "9px", color: "#3a3028" }}>{h.time?.toLocaleTimeString()}</div>
-                      <div style={{ fontSize: "9px", color: "#4a3f2a" }}>{h.confidence}% conf</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </>
-      )}
-
-      <div style={{ padding: "8px", textAlign: "center", fontSize: "8px", color: "#2a2218", borderTop: "1px solid #1a1812" }}>
-        ⚠ EDUCATIONAL PURPOSE ONLY · NOT FINANCIAL ADVICE
-      </div>
-    </div>
-  );
+  // Current price line
+  if(ticks.length>0){
+    const cur=ticks[ticks.length-1];
+    const y=toY(cur);
+    if(y>=pad.t&&y<=H-pad.b){
+      ctx.strokeStyle="#d1d4dc55"; ctx.lineWidth=1; ctx.setLineDash([2,4]);
+      ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(W-pad.r,y); ctx.stroke();
+      ctx.setLineDash([]);
+      // Price tag
+      ctx.fillStyle="#2a2e39";
+      ctx.fillRect(W-pad.r,y-8,58,16);
+      ctx.strokeStyle="#d1d4dc55"; ctx.lineWidth=1;
+      ctx.strokeRect(W-pad.r,y-8,58,16);
+      ctx.fillStyle="#d1d4dc"; ctx.font="9px 'Share Tech Mono'";
+      ctx.fillText(cur.toFixed(2),W-pad.r+3,y+3);
+    }
+  }
 }
+
+// ── UI Updates ────────────────────────────────────────────
+function updateUI(sig, price, prevPrice){
+  // Price
+  document.getElementById('live-price').textContent = price.toFixed(2);
+  const ch = price - (prevPrice||price);
+  const chPct = prevPrice ? ((ch/prevPrice)*100).toFixed(2) : "0.00";
+  const chEl = document.getElementById('price-change');
+  chEl.textContent = `${ch>=0?"+":""}${ch.toFixed(2)} (${ch>=0?"+":""}${chPct}%)`;
+  chEl.className = ch>=0?"up":"dn";
+
+  if(!sig)return;
+  lastSig = sig;
+
+  // Signal badge
+  const badge = document.getElementById('sig-badge');
+  badge.textContent = sig.signal==="BUY"?"▲ BUY":sig.signal==="SELL"?"▼ SELL":"◉ WAIT";
+  badge.className = "sig-badge " + (sig.signal==="BUY"?"sig-buy":sig.signal==="SELL"?"sig-sell":"sig-wait");
+  document.getElementById('sig-info').innerHTML =
+    `Confidence: <b>${sig.confidence}%</b> · ${sig.pd.zone}<br>Bull ${sig.bull}pt · Bear ${sig.bear}pt`;
+
+  // Levels
+  if(sig.signal!=="WAIT"){
+    document.getElementById('lv-entry').textContent = sig.entry.toFixed(2);
+    document.getElementById('lv-sl').textContent = sig.sl.toFixed(2);
+    document.getElementById('lv-tp1').textContent = sig.tp1.toFixed(2);
+    document.getElementById('lv-tp2').textContent = sig.tp2.toFixed(2);
+  }
+
+  // Reasons
+  const r = document.getElementById('reasons');
+  r.innerHTML = sig.reasons.map(x=>
+    `<div class="reason ${x.s==="bull"?"r-bull":"r-bear"}">
+      <span>${x.s==="bull"?"▲":"▼"}</span><span>${x.t}</span>
+    </div>`
+  ).join('') || `<div style="color:#4a5060;font-size:10px;padding:6px">No confluences yet...</div>`;
+}
+
+// ── Candle Builder ────────────────────────────────────────
+function setTF(n){
+  currentTF=n;
+  document.querySelectorAll('.tf-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tf'+n).classList.add('active');
+  candles=[]; candleBuilder={open:null,high:-Infinity,low:Infinity,close:null,count:0,time:null};
+  drawChart();
+}
+
+function buildCandle(price, time){
+  const c=candleBuilder;
+  if(c.open===null){
+    Object.assign(c,{open:price,high:price,low:price,close:price,count:1,time});
+    return;
+  }
+  c.high=Math.max(c.high,price); c.low=Math.min(c.low,price);
+  c.close=price; c.count++;
+  if(c.count>=currentTF){
+    candles.push({open:c.open,high:c.high,low:c.low,close:c.close,time:c.time});
+    if(candles.length>200)candles.shift();
+    const sig=runSMC(candles);
+    const prev=ticks.length>1?ticks[ticks.length-2]:price;
+    updateUI(sig,price,prev);
+    drawChart();
+    Object.assign(c,{open:null,high:-Infinity,low:Infinity,close:null,count:0});
+  }
+}
+
+// ── WebSocket ─────────────────────────────────────────────
+function connect(){
+  ws = new WebSocket(WS_URL);
+  ws.onopen=()=>{
+    ws.send(JSON.stringify({authorize: API_TOKEN}));
+  };
+  ws.onmessage=(e)=>{
+    const msg=JSON.parse(e.data);
+    if(msg.msg_type==="authorize"){
+      if(msg.error){
+        document.getElementById('status-dot').className='status-dot dot-err';
+        document.getElementById('status-txt').textContent='AUTH ERROR — Check Token';
+        return;
+      }
+      ws.send(JSON.stringify({ticks:SYMBOL,subscribe:1}));
+      document.getElementById('status-dot').className='status-dot dot-live';
+      document.getElementById('status-txt').textContent='LIVE';
+    }
+    if(msg.msg_type==="tick"){
+      const t=msg.tick;
+      ticks.push(t.quote);
+      if(ticks.length>500)ticks.shift();
+      document.getElementById('tick-count').textContent=ticks.length+' ticks';
+      buildCandle(t.quote, t.epoch*1000);
+      // Redraw every tick for sparkle effect
+      if(candles.length>0)drawChart();
+    }
+  };
+  ws.onerror=()=>{
+    document.getElementById('status-dot').className='status-dot dot-err';
+    document.getElementById('status-txt').textContent='ERROR — RETRYING...';
+  };
+  ws.onclose=()=>{
+    document.getElementById('status-dot').className='status-dot dot-conn';
+    document.getElementById('status-txt').textContent='RECONNECTING...';
+    setTimeout(connect,3000);
+  };
+  setInterval(()=>{if(ws.readyState===1)ws.send(JSON.stringify({ping:1}));},30000);
+}
+
+resizeCanvas();
+connect();
+</script>
+</body>
+</html>
