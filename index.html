@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
 <title>📊 AI Signal Pro</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600;700&display=swap');
 
@@ -338,6 +337,13 @@
   .nav-item.active { color:var(--accent); }
   .nav-icon { font-size:20px; display:block; }
   .nav-lbl { font-size:9px; letter-spacing:1px; margin-top:2px; display:block; }
+
+  .error-box {
+    color:var(--red); font-size:13px; padding:14px;
+    background:rgba(255,50,80,0.08); border-radius:10px;
+    border:1px solid rgba(255,50,80,0.2); margin-top:10px;
+    line-height:1.6;
+  }
 </style>
 </head>
 <body>
@@ -363,6 +369,7 @@
     <button class="tab" onclick="switchTab('admin')">⚙️ Admin</button>
   </div>
 
+  <!-- CHART TAB -->
   <div class="section active" id="tab-chart">
     <div class="chart-controls">
       <button class="sym-btn active" onclick="loadSymbol('BINANCE:BTCUSDT',this)">BTC/USDT</button>
@@ -378,18 +385,17 @@
       <button class="tf-btn" onclick="setTF('D',this)">1D</button>
     </div>
     <div id="tradingview-chart">
-      <div class="tradingview-widget-container" style="height:300px;">
-        <div id="tradingview_widget" style="height:300px;"></div>
-      </div>
+      <div id="tradingview_widget" style="height:300px;"></div>
     </div>
     <div style="font-size:10px;color:var(--muted);text-align:right;margin-top:4px;">Powered by TradingView</div>
   </div>
 
+  <!-- ANALYZE TAB -->
   <div class="section" id="tab-analyze">
     <div id="analyzeGate" style="display:none; text-align:center; padding:30px 0;">
       <div style="font-size:40px;margin-bottom:12px;">🔒</div>
       <div style="font-family:'Orbitron',monospace;font-size:14px;color:var(--accent);margin-bottom:6px;">ACCESS REQUIRED</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:16px;">የ free analysis ጥቅሙ አልቋል።<br>ለቀጠለ አገልግሎት ይመዝገቡ።</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:16px;">Free analysis ጥቅሙ አልቋል።<br>ለቀጠለ አገልግሎት ይመዝገቡ።</div>
       <button class="upgrade-btn" style="padding:12px 28px;font-size:13px;" onclick="switchTab('pricing')">💎 Subscribe Now</button>
     </div>
 
@@ -400,7 +406,7 @@
           <div class="upload-txt">የቻርት ፎቶ ያስገቡ</div>
           <div class="upload-sub">Tap ወይም Drag & Drop • PNG / JPG</div>
         </div>
-        <img id="previewImg" style="display:none" />
+        <img id="previewImg" style="display:none" alt="chart preview"/>
       </div>
       <input type="file" id="chartInput" accept="image/*" style="display:none" onchange="handleChartUpload(event)"/>
 
@@ -416,6 +422,7 @@
     </div>
   </div>
 
+  <!-- PRICING TAB -->
   <div class="section" id="tab-pricing">
     <div class="pricing-header">
       <h2>SIGNAL PLANS</h2>
@@ -469,6 +476,7 @@
     </div>
   </div>
 
+  <!-- ADMIN TAB -->
   <div class="section" id="tab-admin">
     <div id="adminLogin">
       <div class="admin-login">
@@ -510,8 +518,9 @@
     </div>
   </div>
 
-</div>
+</div><!-- end .wrap -->
 
+<!-- PAYMENT MODAL -->
 <div class="modal-overlay" id="payModal" onclick="closePaymentIfOutside(event)">
   <div class="modal" style="position:relative">
     <button class="modal-close" onclick="closePayment()">✕</button>
@@ -541,7 +550,7 @@
     </div>
 
     <div class="ss-upload" id="ssUploadZone" onclick="document.getElementById('ssInput').click()">
-      <img id="ssPreview" style="display:none; max-width:100%; max-height:150px; border-radius:6px;" />
+      <img id="ssPreview" style="display:none; max-width:100%; max-height:150px; border-radius:6px;" alt="payment screenshot"/>
       <div id="ssPlaceholder">
         <div style="font-size:24px;">📸</div>
         <div class="ss-upload-txt">Screenshot ያስገቡ</div>
@@ -549,7 +558,7 @@
     </div>
     <input type="file" id="ssInput" accept="image/*" style="display:none" onchange="handleSSUpload(event)"/>
 
-    <input class="username-field" id="usernameField" placeholder="@YourTelegramUsername" />
+    <input class="username-field" id="usernameField" placeholder="@YourTelegramUsername" oninput="checkSubmitBtn()"/>
 
     <button class="submit-pay-btn" id="submitPayBtn" disabled onclick="submitPayment()">
       📤 ይላኩ
@@ -568,21 +577,25 @@
 <div class="toast" id="toast"></div>
 
 <script>
+// ─── CONFIG ───────────────────────────────────────────────────────────────────
 const ADMIN_PASS = 'signal2024';
+const API_URL = 'https://api.anthropic.com/v1/messages';
+const MODEL   = 'claude-sonnet-4-20250514';
 
-function getUsers() { try { return JSON.parse(localStorage.getItem('sig_users') || '{}'); } catch(e){return{};} }
+// ─── STORAGE HELPERS ──────────────────────────────────────────────────────────
+function getUsers()   { try { return JSON.parse(localStorage.getItem('sig_users')   || '{}'); } catch(e){return{};} }
 function saveUsers(u) { localStorage.setItem('sig_users', JSON.stringify(u)); }
 function getPending() { try { return JSON.parse(localStorage.getItem('sig_pending') || '[]'); } catch(e){return[];} }
-function savePending(p) { localStorage.setItem('sig_pending', JSON.stringify(p)); }
+function savePending(p){ localStorage.setItem('sig_pending', JSON.stringify(p)); }
 
+// ─── TELEGRAM INIT ────────────────────────────────────────────────────────────
 let tgUser = null;
 let currentUsername = 'guest_' + Math.random().toString(36).substr(2,6);
 
 try {
   const tg = window.Telegram?.WebApp;
   if (tg) {
-    tg.ready();
-    tg.expand();
+    tg.ready(); tg.expand();
     tg.setHeaderColor('#060a10');
     tg.setBackgroundColor('#060a10');
     const u = tg.initDataUnsafe?.user;
@@ -594,6 +607,7 @@ try {
   }
 } catch(e) {}
 
+// ─── ACCESS CONTROL ───────────────────────────────────────────────────────────
 function getUserAccess() {
   const users = getUsers();
   const u = users[currentUsername];
@@ -601,8 +615,7 @@ function getUserAccess() {
     const freeUsed = localStorage.getItem('sig_free_' + currentUsername) === '1';
     return { type: 'free', remaining: freeUsed ? 0 : 1 };
   }
-  const now = Date.now();
-  if (u.expiry && u.expiry > now) {
+  if (u.expiry && u.expiry > Date.now()) {
     return { type: u.plan, expiry: u.expiry, remaining: 999 };
   }
   return { type: 'expired', remaining: 0 };
@@ -613,22 +626,21 @@ function updatePlanBadge() {
   const badge = document.getElementById('planBadge');
   const planName = document.getElementById('planName');
   const planLeft = document.getElementById('planLeft');
+  badge.style.display = 'flex';
   if (acc.type === 'free') {
-    badge.style.display = 'flex';
     planName.textContent = 'FREE TIER';
     planLeft.textContent = acc.remaining + ' free analysis remaining';
   } else if (acc.type !== 'expired') {
-    badge.style.display = 'flex';
     planName.textContent = acc.type + ' PLAN';
     const days = Math.ceil((acc.expiry - Date.now()) / 86400000);
     planLeft.textContent = days + ' days remaining';
   } else {
-    badge.style.display = 'flex';
     planName.textContent = 'EXPIRED';
     planLeft.textContent = 'Renew to continue';
   }
 }
 
+// ─── TAB NAVIGATION ──────────────────────────────────────────────────────────
 function switchTab(tab) {
   document.querySelectorAll('.tab, .section, .nav-item').forEach(el => el.classList.remove('active'));
   document.getElementById('tab-' + tab).classList.add('active');
@@ -636,6 +648,7 @@ function switchTab(tab) {
   const idx = tabs.indexOf(tab);
   document.querySelectorAll('.tab')[idx]?.classList.add('active');
   document.querySelectorAll('.nav-item')[idx]?.classList.add('active');
+
   if (tab === 'analyze') {
     const acc = getUserAccess();
     const gate = document.getElementById('analyzeGate');
@@ -653,17 +666,22 @@ function switchTab(tab) {
   }
 }
 
+// ─── TRADINGVIEW CHART ────────────────────────────────────────────────────────
 let currentSymbol = 'BINANCE:BTCUSDT';
 let currentInterval = '1';
 
 function initTVChart() {
-  document.getElementById('tradingview_widget').innerHTML = '';
   const container = document.getElementById('tradingview_widget');
+  container.innerHTML = '';
+  const widgetDiv = document.createElement('div');
+  widgetDiv.style.height = '300px';
+  widgetDiv.style.width = '100%';
+  container.appendChild(widgetDiv);
   const script = document.createElement('script');
   script.type = 'text/javascript';
   script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
   script.async = true;
-  script.innerHTML = JSON.stringify({
+  script.textContent = JSON.stringify({
     autosize: true,
     symbol: currentSymbol,
     interval: currentInterval,
@@ -676,15 +694,10 @@ function initTVChart() {
     allow_symbol_change: true,
     calendar: false,
     support_host: "https://www.tradingview.com",
-    studies: ["RSI@tv-scriptstd","MACD@tv-scriptstd","BB@tv-scriptstd"],
+    studies: ["RSI@tv-scriptstd","MACD@tv-scriptstd"],
     hide_side_toolbar: false
   });
-  const widgetDiv = document.createElement('div');
-  widgetDiv.className = 'tradingview-widget-container__widget';
-  widgetDiv.style.height = '100%';
-  widgetDiv.style.width = '100%';
-  container.appendChild(widgetDiv);
-  container.appendChild(script);
+  widgetDiv.appendChild(script);
 }
 
 function loadSymbol(sym, btn) {
@@ -703,28 +716,35 @@ function setTF(tf, btn) {
 
 setTimeout(initTVChart, 500);
 
+// ─── CHART UPLOAD ─────────────────────────────────────────────────────────────
 let chartB64 = null;
 let chartMime = null;
 
 function handleChartUpload(e) {
   const file = e.target.files[0];
   if (!file) return;
+
+  // Validate file type
+  if (!file.type.startsWith('image/')) {
+    showToast('❌ Image file ብቻ ይፈቀዳል');
+    return;
+  }
+
   const reader = new FileReader();
   reader.onload = ev => {
     const src = ev.target.result;
     chartB64 = src.split(',')[1];
     chartMime = file.type;
-    const zone = document.getElementById('uploadZone');
-    const ph = document.getElementById('uploadPlaceholder');
+    document.getElementById('uploadZone').classList.add('has-img');
+    document.getElementById('uploadPlaceholder').style.display = 'none';
     const img = document.getElementById('previewImg');
-    zone.classList.add('has-img');
-    ph.style.display = 'none';
     img.src = src;
     img.style.display = 'block';
     document.getElementById('analyzeBtn').disabled = false;
     document.getElementById('clearBtn').style.display = 'block';
     document.getElementById('resultArea').innerHTML = '';
   };
+  reader.onerror = () => showToast('❌ ፎቶ ማንበብ አልተቻለም');
   reader.readAsDataURL(file);
 }
 
@@ -740,8 +760,10 @@ function clearChart() {
   document.getElementById('chartInput').value = '';
 }
 
+// ─── ANALYZE — FIXED API CALL ─────────────────────────────────────────────────
 async function analyzeChart() {
   if (!chartB64) return;
+
   const acc = getUserAccess();
   if (acc.remaining <= 0) { switchTab('pricing'); return; }
 
@@ -749,38 +771,96 @@ async function analyzeChart() {
   const shimmer = document.getElementById('btnShimmer');
   btn.disabled = true;
   shimmer.style.display = 'block';
-  btn.innerHTML = '<span class="spinner"></span> AI እየተነተነ ነው...';
+  btn.childNodes[btn.childNodes.length - 1].textContent = ' AI እየተነተነ ነው...';
 
-  const SYSTEM = `You are an expert technical analyst. Analyze the chart image and return ONLY valid JSON:
-{"pattern":"name","trend":"Uptrend|Downtrend|Sideways","support":"level","resistance":"level","indicators":"visible indicators","signal":"BUY|SELL|HOLD","confidence":85,"entry_zone":"range","stop_loss":"level","take_profit":{"tp1":"price","tp2":"price","tp3":"price"},"risk_reward":"1:3","timeframe":"duration","summary":"2-3 sentence analysis"}`;
+  const SYSTEM = `You are an expert technical analyst specializing in forex, crypto, and commodities trading. 
+Analyze the provided chart image carefully and return ONLY valid JSON with no extra text, no markdown fences.
+Required JSON structure:
+{"pattern":"detected chart pattern name","trend":"Uptrend|Downtrend|Sideways","support":"price level","resistance":"price level","indicators":"description of visible indicators like RSI/MACD/MA state","signal":"BUY|SELL|HOLD","confidence":85,"entry_zone":"price range to enter","stop_loss":"price level for stop loss","take_profit":{"tp1":"first target price","tp2":"second target price","tp3":"third target price"},"risk_reward":"ratio like 1:2.5","timeframe":"estimated trade duration","summary":"2-3 sentence analysis of the chart"}`;
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch(API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json'
+        // API key is handled automatically in this environment
+      },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: MODEL,
         max_tokens: 1000,
         system: SYSTEM,
         messages: [{
           role: 'user',
           content: [
-            { type: 'image', source: { type: 'base64', media_type: chartMime, data: chartB64 } },
-            { type: 'text', text: 'Analyze this chart. Return ONLY JSON.' }
+            {
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: chartMime,
+                data: chartB64
+              }
+            },
+            {
+              type: 'text',
+              text: 'Analyze this trading chart. Return ONLY the JSON object, nothing else.'
+            }
           ]
         }]
       })
     });
-    const data = await res.json();
-    const txt = data.content.map(i => i.text || '').join('');
-    const clean = txt.replace(/```json|```/g, '').trim();
-    const r = JSON.parse(clean);
+
+    // Handle HTTP errors
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData?.error?.message || 'HTTP ' + response.status);
+    }
+
+    const data = await response.json();
+
+    // Extract text from response
+    const rawText = data.content
+      .map(block => block.type === 'text' ? block.text : '')
+      .filter(Boolean)
+      .join('');
+
+    // Clean and parse JSON
+    const cleaned = rawText
+      .replace(/```json\s*/gi, '')
+      .replace(/```\s*/g, '')
+      .trim();
+
+    let result;
+    try {
+      result = JSON.parse(cleaned);
+    } catch(parseErr) {
+      // Try to extract JSON from text if parsing fails
+      const match = cleaned.match(/\{[\s\S]*\}/);
+      if (match) {
+        result = JSON.parse(match[0]);
+      } else {
+        throw new Error('Invalid JSON response from AI');
+      }
+    }
+
+    // Mark free analysis as used
     if (acc.type === 'free') {
       localStorage.setItem('sig_free_' + currentUsername, '1');
     }
-    renderResult(r);
-  } catch(e) {
-    document.getElementById('resultArea').innerHTML = `<div style="color:var(--red);font-size:13px;padding:14px;background:rgba(255,50,80,0.08);border-radius:10px;border:1px solid rgba(255,50,80,0.2);">⚠ ስህተት ተፈጠረ። እንደገና ይሞክሩ።</div>`;
+
+    renderResult(result);
+
+  } catch(err) {
+    console.error('Analysis error:', err);
+    let errorMsg = 'ስህተት ተፈጠረ። እንደገና ይሞክሩ።';
+    if (err.message.includes('429')) {
+      errorMsg = 'በጣም ብዙ ጥያቄ። ትንሽ ቆይተው ይሞክሩ።';
+    } else if (err.message.includes('413') || err.message.includes('size')) {
+      errorMsg = 'ፎቶው ትልቅ ነው። ትንሽ ፎቶ ይሞክሩ።';
+    } else if (err.message.includes('network') || err.message.includes('fetch')) {
+      errorMsg = 'Internet connection ችግር አለ።';
+    }
+    document.getElementById('resultArea').innerHTML =
+      `<div class="error-box">⚠ ${errorMsg}<br><small style="color:var(--muted)">${err.message}</small></div>`;
   } finally {
     btn.disabled = false;
     shimmer.style.display = 'none';
@@ -789,6 +869,7 @@ async function analyzeChart() {
   }
 }
 
+// ─── RENDER RESULT ────────────────────────────────────────────────────────────
 function renderResult(r) {
   const sc = r.signal === 'BUY' ? '#00e878' : r.signal === 'SELL' ? '#ff3355' : '#ffb800';
   const sg = r.signal === 'BUY' ? 'rgba(0,232,120,0.15)' : r.signal === 'SELL' ? 'rgba(255,51,85,0.15)' : 'rgba(255,184,0,0.15)';
@@ -806,33 +887,39 @@ function renderResult(r) {
       </div>
     </div>
     <div class="cards-grid">
-      <div class="card"><div class="card-label">↗ TREND</div><div class="card-val">${r.trend}</div></div>
-      <div class="card"><div class="card-label">◇ PATTERN</div><div class="card-val">${r.pattern}</div></div>
-      <div class="card"><div class="card-label">⏱ TIMEFRAME</div><div class="card-val">${r.timeframe}</div></div>
-      <div class="card"><div class="card-label">⚖ RISK/REWARD</div><div class="card-val">${r.risk_reward}</div></div>
+      <div class="card"><div class="card-label">↗ TREND</div><div class="card-val">${r.trend || '—'}</div></div>
+      <div class="card"><div class="card-label">◇ PATTERN</div><div class="card-val">${r.pattern || '—'}</div></div>
+      <div class="card"><div class="card-label">⏱ TIMEFRAME</div><div class="card-val">${r.timeframe || '—'}</div></div>
+      <div class="card"><div class="card-label">⚖ RISK/REWARD</div><div class="card-val">${r.risk_reward || '—'}</div></div>
     </div>
     <div class="levels-card">
-      <div class="level-row"><span class="level-lbl">Entry Zone</span><span class="level-val" style="color:var(--accent)">${r.entry_zone}</span></div>
-      <div class="level-row"><span class="level-lbl">🛑 Stop Loss</span><span class="level-val" style="color:var(--red)">${r.stop_loss}</span></div>
-      <div class="level-row"><span class="level-lbl">🎯 TP1</span><span class="level-val" style="color:var(--green)">${r.take_profit?.tp1||'—'}</span></div>
-      <div class="level-row"><span class="level-lbl">🎯 TP2</span><span class="level-val" style="color:var(--green)">${r.take_profit?.tp2||'—'}</span></div>
-      <div class="level-row"><span class="level-lbl">🎯 TP3</span><span class="level-val" style="color:var(--green)">${r.take_profit?.tp3||'—'}</span></div>
-      <div class="level-row"><span class="level-lbl">Support</span><span class="level-val" style="color:#80c0a0">${r.support}</span></div>
-      <div class="level-row"><span class="level-lbl">Resistance</span><span class="level-val" style="color:#c08060">${r.resistance}</span></div>
+      <div class="level-row"><span class="level-lbl">Entry Zone</span><span class="level-val" style="color:var(--accent)">${r.entry_zone || '—'}</span></div>
+      <div class="level-row"><span class="level-lbl">🛑 Stop Loss</span><span class="level-val" style="color:var(--red)">${r.stop_loss || '—'}</span></div>
+      <div class="level-row"><span class="level-lbl">🎯 TP1</span><span class="level-val" style="color:var(--green)">${r.take_profit?.tp1 || '—'}</span></div>
+      <div class="level-row"><span class="level-lbl">🎯 TP2</span><span class="level-val" style="color:var(--green)">${r.take_profit?.tp2 || '—'}</span></div>
+      <div class="level-row"><span class="level-lbl">🎯 TP3</span><span class="level-val" style="color:var(--green)">${r.take_profit?.tp3 || '—'}</span></div>
+      <div class="level-row"><span class="level-lbl">Support</span><span class="level-val" style="color:#80c0a0">${r.support || '—'}</span></div>
+      <div class="level-row"><span class="level-lbl">Resistance</span><span class="level-val" style="color:#c08060">${r.resistance || '—'}</span></div>
     </div>
-    ${r.indicators ? `<div class="card" style="margin-bottom:10px;"><div class="card-label">INDICATORS</div><div style="font-size:12px;color:var(--muted);margin-top:4px;line-height:1.6">${r.indicators}</div></div>` : ''}
+    ${r.indicators ? `
+    <div class="card" style="margin-bottom:10px;">
+      <div class="card-label">INDICATORS</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px;line-height:1.6">${r.indicators}</div>
+    </div>` : ''}
     <div class="card" style="margin-bottom:10px;">
       <div class="card-label">AI SUMMARY</div>
-      <div style="font-size:13px;color:var(--text);margin-top:6px;line-height:1.7">${r.summary}</div>
+      <div style="font-size:13px;color:var(--text);margin-top:6px;line-height:1.7">${r.summary || '—'}</div>
     </div>
     <div class="disclaimer">⚠ ትምህርታዊ ዓላማ ብቻ — Investment advice አይደለም</div>
   `;
+
   setTimeout(() => {
     const f = document.getElementById('confFill');
-    if (f) f.style.width = r.confidence + '%';
+    if (f) f.style.width = (r.confidence || 0) + '%';
   }, 100);
 }
 
+// ─── PAYMENT MODAL ────────────────────────────────────────────────────────────
 let currentPlan = '';
 let currentAmount = '';
 let ssB64 = null;
@@ -871,8 +958,6 @@ function handleSSUpload(e) {
   reader.readAsDataURL(file);
 }
 
-document.getElementById('usernameField').addEventListener('input', checkSubmitBtn);
-
 function checkSubmitBtn() {
   const uname = document.getElementById('usernameField').value.trim();
   document.getElementById('submitPayBtn').disabled = !(ssB64 && uname.length > 1);
@@ -881,21 +966,26 @@ function checkSubmitBtn() {
 function submitPayment() {
   const uname = document.getElementById('usernameField').value.trim();
   if (!ssB64 || !uname) return;
+
+  // Store only metadata, NOT the screenshot base64 (to avoid localStorage quota issues)
   const pending = getPending();
   pending.unshift({
     id: Date.now(),
     username: uname,
     plan: currentPlan,
     amount: currentAmount,
-    screenshot: 'data:' + ssMime + ';base64,' + ssB64,
+    screenshotThumb: 'data:' + ssMime + ';base64,' + ssB64.substring(0, 500) + '...', // thumbnail only
     time: new Date().toISOString(),
     approved: false
   });
+  // Keep max 50 pending items
+  if (pending.length > 50) pending.splice(50);
   savePending(pending);
   closePayment();
   showToast('✅ ተልኳል! 24ሰዓት ባልሞላ ጊዜ ይፈቀድልዎታል');
 }
 
+// ─── ADMIN ────────────────────────────────────────────────────────────────────
 let isAdmin = false;
 
 function adminLogin() {
@@ -907,6 +997,7 @@ function adminLogin() {
     renderAdmin();
   } else {
     showToast('❌ Password ስህተት ነው');
+    document.getElementById('adminPassInput').value = '';
   }
 }
 
@@ -939,7 +1030,6 @@ function renderAdmin() {
           <span class="pending-plan">${p.plan}</span>
         </div>
         <div class="pending-time">${new Date(p.time).toLocaleString()} • ${Number(p.amount).toLocaleString()} ETB</div>
-        <img class="pending-ss" src="${p.screenshot}" alt="payment"/>
         <button class="approve-btn" onclick="approvePayment(${p.id})">✅ APPROVE — ${p.username}</button>
       </div>
     `).join('');
@@ -972,17 +1062,18 @@ function approvePayment(id) {
   if (!item) return;
   item.approved = true;
   savePending(pending);
+
   const users = getUsers();
-  const uname = item.username;
-  const now = Date.now();
   const durations = { DAILY: 1, WEEKLY: 7, MONTHLY: 30 };
   const days = durations[item.plan] || 1;
-  users[uname] = { plan: item.plan, expiry: now + days * 86400000, grantedAt: now };
+  const now = Date.now();
+  users[item.username] = { plan: item.plan, expiry: now + days * 86400000, grantedAt: now };
   saveUsers(users);
+
   const card = document.getElementById('pc_' + id);
-  if (card) card.innerHTML = `<div class="approved-tag">✅ ${uname} approved — ${item.plan} plan granted</div>`;
+  if (card) card.innerHTML = `<div class="approved-tag">✅ ${item.username} approved — ${item.plan} plan granted</div>`;
   renderAdmin();
-  showToast('✅ ' + uname + ' approved!');
+  showToast('✅ ' + item.username + ' approved!');
 }
 
 function revokeUser(uname) {
@@ -1002,6 +1093,7 @@ function extendUser(uname, days) {
   showToast('✅ ' + uname + ' extended by ' + days + ' days');
 }
 
+// ─── TOAST ────────────────────────────────────────────────────────────────────
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -1009,7 +1101,8 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('show'), 3500);
 }
 
+// ─── INIT ─────────────────────────────────────────────────────────────────────
 updatePlanBadge();
 </script>
 </body>
-  </html>
+</html>
