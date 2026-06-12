@@ -1,590 +1,481 @@
 <!DOCTYPE html>
 <html lang="am">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Gold Signal AI</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Gold Signal — የወርቅ ምልክት</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{min-height:100vh;background:#0a0a1a;font-family:'Segoe UI',system-ui,sans-serif;display:flex;flex-direction:column;color:white}
-  ::-webkit-scrollbar{width:3px}
-  ::-webkit-scrollbar-thumb{background:#ffd70025;border-radius:2px}
-  @keyframes pulse{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
-  @keyframes spin{to{transform:rotate(360deg)}}
+  :root{
+    --bg:#14110F;
+    --bg-card:#1E1814;
+    --bg-card-2:#241D17;
+    --gold:#D4AF37;
+    --gold-bright:#F0CE6A;
+    --text:#F2E9DC;
+    --muted:#9C9189;
+    --green:#5FAE7B;
+    --red:#D1604A;
+    --border:rgba(212,175,55,0.16);
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{
+    background:radial-gradient(120% 100% at 50% -10%, #221C16 0%, #14110F 55%, #0F0D0B 100%);
+    color:var(--text);
+    font-family:'Inter', sans-serif;
+    min-height:100vh;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .wrap{
+    max-width:480px;
+    margin:0 auto;
+    padding:22px 18px 60px;
+  }
+  /* HEADER */
+  .eyebrow{
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.28em;
+    color:var(--gold);
+    text-transform:uppercase;
+    margin-bottom:6px;
+  }
+  h1{
+    font-family:'Playfair Display', serif;
+    font-weight:800;
+    font-size:32px;
+    line-height:1.1;
+    color:var(--gold-bright);
+    margin-bottom:4px;
+  }
+  .sub{
+    font-size:13px;
+    color:var(--muted);
+    margin-bottom:22px;
+  }
 
-  /* Header */
-  #header{background:linear-gradient(90deg,#111128,#1a1a3a);border-bottom:1px solid #ffd70025;padding:12px 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-  #header-left{display:flex;align-items:center;gap:10px}
-  #header-icon{font-size:26px}
-  #header-title{color:#ffd700;font-weight:800;font-size:16px;letter-spacing:1px}
-  #header-sub{color:#666;font-size:10px}
-  #vision-badge{background:#00d09c15;border:1px solid #00d09c40;border-radius:8px;padding:6px 12px;text-align:center}
-  #vision-label{color:#888;font-size:9px}
-  #vision-status{color:#00d09c;font-weight:700;font-size:12px}
+  /* PRICE CARD */
+  .price-card{
+    background:linear-gradient(160deg, var(--bg-card-2), var(--bg-card));
+    border:1px solid var(--border);
+    border-radius:18px;
+    padding:22px 20px;
+    margin-bottom:16px;
+    position:relative;
+    overflow:hidden;
+  }
+  .price-card::before{
+    content:"";
+    position:absolute; inset:0;
+    background:
+      repeating-linear-gradient(135deg, rgba(212,175,55,0.04) 0 2px, transparent 2px 14px);
+    pointer-events:none;
+  }
+  .price-label{
+    font-size:12px;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:0.14em;
+    margin-bottom:8px;
+  }
+  .price-row{
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .price-value{
+    font-family:'Playfair Display', serif;
+    font-weight:700;
+    font-size:46px;
+    color:var(--text);
+    letter-spacing:0.01em;
+  }
+  .price-unit{
+    font-family:'JetBrains Mono', monospace;
+    font-size:13px;
+    color:var(--muted);
+  }
+  .price-meta{
+    margin-top:10px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    color:var(--muted);
+    display:flex;
+    justify-content:space-between;
+  }
+  .pulse-dot{
+    display:inline-block;
+    width:7px; height:7px;
+    border-radius:50%;
+    background:var(--green);
+    margin-right:6px;
+    box-shadow:0 0 0 0 rgba(95,174,123,0.6);
+    animation:pulse 2s infinite;
+    vertical-align:middle;
+  }
+  @keyframes pulse{
+    0%{ box-shadow:0 0 0 0 rgba(95,174,123,0.5); }
+    70%{ box-shadow:0 0 0 6px rgba(95,174,123,0); }
+    100%{ box-shadow:0 0 0 0 rgba(95,174,123,0); }
+  }
 
-  /* Signal bar */
-  #signal-bar{display:none;background:#00000020;border-bottom:1px solid #ffffff10;padding:6px 18px;align-items:center;gap:12px;overflow-x:auto;font-size:11px;white-space:nowrap;flex-shrink:0}
+  /* BUTTON */
+  .btn{
+    width:100%;
+    border:none;
+    border-radius:14px;
+    padding:16px;
+    font-family:'Inter', sans-serif;
+    font-weight:700;
+    font-size:15px;
+    letter-spacing:0.02em;
+    cursor:pointer;
+    background:linear-gradient(135deg, var(--gold-bright), var(--gold) 70%);
+    color:#1A1410;
+    transition:transform 0.15s ease, opacity 0.15s ease;
+    margin-bottom:18px;
+  }
+  .btn:active{ transform:scale(0.98); }
+  .btn:disabled{ opacity:0.6; cursor:default; }
+  .btn .spinner{
+    display:inline-block;
+    width:14px; height:14px;
+    border:2px solid rgba(26,20,16,0.3);
+    border-top-color:#1A1410;
+    border-radius:50%;
+    animation:spin 0.7s linear infinite;
+    vertical-align:middle;
+    margin-right:8px;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
 
-  /* Messages */
-  #messages{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:12px}
-  .msg-wrap{display:flex;flex-direction:column}
-  .msg-wrap.user{align-items:flex-end}
-  .msg-wrap.assistant{align-items:flex-start}
-  .msg-meta{color:#666;font-size:11px;margin-bottom:4px}
-  .msg-bubble{max-width:82%;padding:11px 15px;border-radius:18px;font-size:13px;line-height:1.65;white-space:pre-wrap}
-  .msg-bubble.user{background:linear-gradient(135deg,#ffd700,#f5a623);color:#000;border-radius:18px 18px 4px 18px}
-  .msg-bubble.assistant{background:#1a1a32;border:1px solid #ffffff12;color:#ddd;border-radius:18px 18px 18px 4px}
-  .msg-time-user{color:#555;font-size:10px;margin-top:3px;text-align:right}
-  .msg-img{max-width:100%;border-radius:10px;margin-bottom:6px;border:1px solid #ffd70030;display:block}
+  /* GAUGE / SIGNATURE ELEMENT */
+  .gauge-card{
+    background:linear-gradient(160deg, var(--bg-card-2), var(--bg-card));
+    border:1px solid var(--border);
+    border-radius:18px;
+    padding:22px 20px 14px;
+    margin-bottom:16px;
+    text-align:center;
+  }
+  .gauge-title{
+    font-size:12px;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:0.14em;
+    margin-bottom:6px;
+  }
+  .gauge-wrap{
+    position:relative;
+    width:240px;
+    margin:8px auto 0;
+  }
+  .needle{
+    transform-origin: 120px 120px;
+    transition: transform 1.1s cubic-bezier(.34,1.56,.64,1);
+  }
+  .signal-label{
+    font-family:'Playfair Display', serif;
+    font-weight:800;
+    font-size:30px;
+    margin-top:-26px;
+  }
+  .signal-buy{ color:var(--green); }
+  .signal-sell{ color:var(--red); }
+  .signal-hold{ color:var(--gold-bright); }
+  .confidence{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    color:var(--muted);
+    margin-top:4px;
+    margin-bottom:6px;
+  }
 
-  /* Loading dots */
-  #loading{display:none;align-items:center;gap:8px;padding:4px 0}
-  #loading span{color:#888;font-size:12px}
-  .dot{width:6px;height:6px;border-radius:50%;background:#ffd700;animation:pulse 1.2s ease-in-out infinite}
-  .dot:nth-child(2){animation-delay:.2s}
-  .dot:nth-child(3){animation-delay:.4s}
+  /* ANALYSIS CARD */
+  .analysis-card{
+    background:linear-gradient(160deg, var(--bg-card-2), var(--bg-card));
+    border:1px solid var(--border);
+    border-radius:18px;
+    padding:20px;
+    margin-bottom:16px;
+  }
+  .analysis-card h3{
+    font-family:'Playfair Display', serif;
+    font-size:17px;
+    color:var(--gold-bright);
+    margin-bottom:10px;
+    font-weight:700;
+  }
+  .analysis-text{
+    font-size:14px;
+    line-height:1.7;
+    color:var(--text);
+  }
 
-  /* Drop zone */
-  #dropzone{margin:0 16px 8px;border:2px dashed #ffffff20;border-radius:12px;padding:14px;text-align:center;cursor:pointer;transition:all .2s}
-  #dropzone:hover{border-color:#ffd70060}
-  #dropzone.drag-over{border-color:#ffd700;background:#ffd70008}
-  #dropzone.has-image{border-color:#00d09c;background:#00d09c08;padding:8px}
-  #dz-default{pointer-events:none}
-  #dz-default .dz-icon{font-size:22px;margin-bottom:4px}
-  #dz-default .dz-text{color:#888;font-size:12px}
-  #dz-default .dz-sub{color:#555;font-size:10px;margin-top:2px}
-  #dz-preview{display:none;align-items:center;gap:10px}
-  #dz-preview img{height:60px;border-radius:6px;object-fit:cover}
-  #dz-preview-info{flex:1;text-align:left}
-  #dz-preview-info .ready{color:#00d09c;font-size:12px;font-weight:700}
-  #dz-preview-info .hint{color:#888;font-size:11px}
-  #dz-remove{background:#ff475720;border:none;color:#ff4757;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:12px}
+  /* NEWS LIST */
+  .news-card{
+    background:linear-gradient(160deg, var(--bg-card-2), var(--bg-card));
+    border:1px solid var(--border);
+    border-radius:18px;
+    padding:20px;
+    margin-bottom:16px;
+  }
+  .news-card h3{
+    font-family:'Playfair Display', serif;
+    font-size:17px;
+    color:var(--gold-bright);
+    margin-bottom:12px;
+    font-weight:700;
+  }
+  .news-item{
+    padding:12px 0;
+    border-top:1px solid var(--border);
+    font-size:13.5px;
+    line-height:1.5;
+  }
+  .news-item:first-child{ border-top:none; padding-top:0; }
+  .news-source{
+    display:block;
+    font-family:'JetBrains Mono', monospace;
+    font-size:10.5px;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:0.1em;
+    margin-top:4px;
+  }
 
-  /* Quick actions */
-  #quick-actions{padding:0 16px 6px;display:flex;gap:6px;flex-wrap:wrap;flex-shrink:0}
-  .quick-btn{background:#1a1a32;border:1px solid #ffd70030;color:#ffd700;padding:5px 10px;border-radius:16px;font-size:11px;cursor:pointer;transition:background .15s}
-  .quick-btn:hover{background:#2a2a42}
-
-  /* Input row */
-  #input-row{padding:6px 16px 16px;display:flex;gap:8px;flex-shrink:0}
-  #text-input{flex:1;background:#1a1a32;border:1px solid #ffd70025;border-radius:12px;padding:11px 14px;color:white;font-size:13px;outline:none;transition:border-color .2s;font-family:inherit}
-  #text-input:focus{border-color:#ffd700}
-  #text-input::placeholder{color:#555}
-  #send-btn{background:linear-gradient(135deg,#ffd700,#f5a623);border:none;border-radius:12px;padding:11px 18px;color:#000;font-weight:700;font-size:13px;cursor:pointer;transition:all .2s;white-space:nowrap}
-  #send-btn:disabled{background:#222;color:#555;cursor:not-allowed}
-
-  /* Footer */
-  #footer{text-align:center;color:#333;font-size:9px;padding-bottom:10px;flex-shrink:0}
-
-  /* Signal Card */
-  .signal-card{background:linear-gradient(135deg,#12122a 0%,#1a1a3e 100%);border-radius:16px;padding:18px;width:100%;max-width:520px}
-  .sc-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
-  .sc-signal-badge{border-radius:10px;padding:7px 16px;font-size:18px;font-weight:900;letter-spacing:2px}
-  .sc-name{font-weight:700;font-size:13px;color:#ffd700}
-  .sc-pattern{color:#aaa;font-size:11px}
-  .sc-conf-label{color:#888;font-size:10px}
-  .sc-conf-val{color:white;font-weight:900;font-size:26px}
-  .sc-bar-bg{background:#ffffff12;border-radius:4px;height:5px;margin-bottom:14px}
-  .sc-bar-fill{height:100%;background:linear-gradient(90deg,var(--c),#ffd700);border-radius:4px}
-  .sc-price-box{background:#ffd70015;border:1px solid #ffd70040;border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
-  .sc-price-box span:first-child{color:#888;font-size:11px}
-  .sc-price-box span:last-child{color:#ffd700;font-weight:900;font-size:18px}
-  .sc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
-  .sc-cell{background:#ffffff08;border-radius:10px;padding:10px 12px}
-  .sc-cell-label{color:#777;font-size:10px;margin-bottom:3px}
-  .sc-cell-val{font-weight:700;font-size:15px}
-  .sc-bottom-row{display:flex;gap:8px;margin-bottom:12px}
-  .sc-tp3{flex:1;background:#ffffff08;border-radius:10px;padding:10px 12px;border-left:3px solid #a29bfe}
-  .sc-tp3 .lbl{color:#777;font-size:10px;margin-bottom:3px}
-  .sc-tp3 .val{color:#a29bfe;font-weight:700;font-size:15px}
-  .sc-rr{background:#ffffff08;border-radius:10px;padding:10px 12px;text-align:center;min-width:80px}
-  .sc-rr .lbl{color:#777;font-size:10px;margin-bottom:3px}
-  .sc-rr .val{color:#ffd700;font-weight:900;font-size:18px}
-  .sc-levels{display:flex;gap:8px;margin-bottom:12px}
-  .sc-sup{flex:1;background:#00d09c10;border-radius:8px;padding:8px 12px}
-  .sc-sup .lbl{color:#888;font-size:10px}
-  .sc-sup .val{color:#00d09c;font-weight:700}
-  .sc-res{flex:1;background:#ff475710;border-radius:8px;padding:8px 12px}
-  .sc-res .lbl{color:#888;font-size:10px}
-  .sc-res .val{color:#ff4757;font-weight:700}
-  .sc-badges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
-  .sc-badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
-  .sc-badge-trend{background:#ffffff12;color:#ccc;padding:3px 10px;border-radius:20px;font-size:11px}
-  .sc-reasoning{background:#ffffff08;border-radius:10px;padding:12px;margin-bottom:10px}
-  .sc-reasoning-title{color:#ffd700;font-size:11px;margin-bottom:6px;font-weight:700}
-  .sc-reasoning-text{color:#ccc;font-size:13px;line-height:1.7}
-  .sc-keylevels{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
-  .sc-keylevel{background:#ffffff10;color:#ddd;padding:3px 8px;border-radius:6px;font-size:11px}
-  .sc-warning{background:#ff475710;border:1px solid #ff475730;border-radius:8px;padding:8px 12px}
-  .sc-warning-text{color:#ff4757;font-size:11px}
+  .footnote{
+    text-align:center;
+    font-size:11px;
+    color:var(--muted);
+    line-height:1.6;
+    padding-top:6px;
+  }
+  .error{
+    background:rgba(209,96,74,0.12);
+    border:1px solid rgba(209,96,74,0.35);
+    color:#E6A493;
+    border-radius:14px;
+    padding:14px 16px;
+    font-size:13px;
+    margin-bottom:16px;
+  }
+  .hidden{ display:none; }
 </style>
 </head>
 <body>
+<div class="wrap">
 
-<!-- API Key Banner -->
-<div id="api-banner" style="background:#1a1a00;border-bottom:1px solid #ffd70040;padding:10px 16px;display:flex;align-items:center;gap:8px;flex-shrink:0">
-  <span style="color:#ffd700;font-size:12px;white-space:nowrap">🔑 API Key:</span>
-  <input id="api-key-input" type="password" placeholder="sk-ant-api03-..." style="flex:1;background:#0a0a1a;border:1px solid #ffd70040;border-radius:8px;padding:7px 10px;color:white;font-size:12px;outline:none;font-family:monospace"/>
-  <button id="api-save-btn" style="background:linear-gradient(135deg,#ffd700,#f5a623);border:none;border-radius:8px;padding:7px 14px;color:#000;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap">አስቀምጥ</button>
-</div>
-<div id="api-status" style="display:none;background:#00d09c12;border-bottom:1px solid #00d09c30;padding:6px 16px;font-size:11px;color:#00d09c;flex-shrink:0">
-  ✅ API Key ተቀምጧል — Chart upload አድርገህ ጀምር!
-</div>
+  <div class="eyebrow">XAU / USD &nbsp;·&nbsp; LIVE</div>
+  <h1>የወርቅ ምልክት</h1>
+  <div class="sub">የአሁኑ የወርቅ ዋጋ፣ ዜና ትንታኔ እና የግብይት ምልክት</div>
 
-<!-- Header -->
-<div id="header">
-  <div id="header-left">
-    <span id="header-icon">🥇</span>
-    <div>
-      <div id="header-title">GOLD SIGNAL AI</div>
-      <div id="header-sub">Chart Vision • Claude Powered</div>
+  <!-- PRICE CARD -->
+  <div class="price-card">
+    <div class="price-label">የአንድ አውንስ ዋጋ (Spot)</div>
+    <div class="price-row">
+      <span class="price-value" id="priceValue">--.--</span>
+      <span class="price-unit">USD / oz</span>
+    </div>
+    <div class="price-meta">
+      <span><span class="pulse-dot" id="pulseDot"></span><span id="priceStatus">በመጫን ላይ...</span></span>
+      <span id="priceTime">--</span>
     </div>
   </div>
-  <div id="vision-badge">
-    <div id="vision-label">VISION</div>
-    <div id="vision-status">ENABLED ✓</div>
-  </div>
-</div>
 
-<!-- Signal Bar -->
-<div id="signal-bar"></div>
+  <div id="errorBox" class="error hidden"></div>
 
-<!-- Messages -->
-<div id="messages"></div>
+  <!-- BUTTON -->
+  <button class="btn" id="analyzeBtn" onclick="runAnalysis()">ትንታኔ እና ምልክት አግኝ</button>
 
-<!-- Drop Zone -->
-<div id="dropzone">
-  <div id="dz-default">
-    <div class="dz-icon">📸</div>
-    <div class="dz-text">Chart Screenshot ይጎትቱ ወይም ይጫኑ</div>
-    <div class="dz-sub">PNG, JPG, WEBP</div>
-  </div>
-  <div id="dz-preview">
-    <img id="dz-thumb" src="" alt="preview"/>
-    <div id="dz-preview-info">
-      <div class="ready">✓ Chart ተዘጋጅቷል</div>
-      <div class="hint">ጥያቄ ጻፍ ወይም ቀጥታ ላክ</div>
+  <!-- GAUGE -->
+  <div class="gauge-card hidden" id="gaugeCard">
+    <div class="gauge-title">የግብይት ምልክት</div>
+    <div class="gauge-wrap">
+      <svg viewBox="0 0 240 140" width="240" height="140">
+        <defs>
+          <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#D1604A"/>
+            <stop offset="50%" stop-color="#D4AF37"/>
+            <stop offset="100%" stop-color="#5FAE7B"/>
+          </linearGradient>
+        </defs>
+        <path d="M 20 120 A 100 100 0 0 1 220 120" fill="none" stroke="url(#gaugeGrad)" stroke-width="14" stroke-linecap="round"/>
+        <g class="needle" id="needle">
+          <line x1="120" y1="120" x2="120" y2="32" stroke="#F2E9DC" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="120" cy="120" r="7" fill="#F2E9DC"/>
+        </g>
+        <text x="22" y="138" fill="#D1604A" font-family="JetBrains Mono" font-size="10" text-anchor="start">ሽያጭ</text>
+        <text x="120" y="20" fill="#D4AF37" font-family="JetBrains Mono" font-size="10" text-anchor="middle">ጠብቅ</text>
+        <text x="218" y="138" fill="#5FAE7B" font-family="JetBrains Mono" font-size="10" text-anchor="end">ግዢ</text>
+      </svg>
     </div>
-    <button id="dz-remove">✕</button>
+    <div class="signal-label" id="signalLabel">--</div>
+    <div class="confidence" id="confidenceLabel">እምነት: --%</div>
   </div>
-  <input id="file-input" type="file" accept="image/*" style="display:none"/>
-</div>
 
-<!-- Quick Actions -->
-<div id="quick-actions">
-  <button class="quick-btn" data-text="Chart ስጠኝ signal">Chart ስጠኝ signal</button>
-  <button class="quick-btn" data-text="Trend ምንድን ነው?">Trend ምንድን ነው?</button>
-  <button class="quick-btn" data-text="Key levels ለይ">Key levels ለይ</button>
-  <button class="quick-btn" data-text="Risk management">Risk management</button>
-</div>
+  <!-- ANALYSIS -->
+  <div class="analysis-card hidden" id="analysisCard">
+    <h3>ትንታኔ</h3>
+    <div class="analysis-text" id="analysisText"></div>
+  </div>
 
-<!-- Input Row -->
-<div id="input-row">
-  <input id="text-input" type="text" placeholder="Chart upload ወይም ጥያቄ ጠይቅ..."/>
-  <button id="send-btn" disabled>📊 ላክ</button>
-</div>
+  <!-- NEWS -->
+  <div class="news-card hidden" id="newsCard">
+    <h3>ተያያዥ ዜናዎች</h3>
+    <div id="newsList"></div>
+  </div>
 
-<!-- Footer -->
-<div id="footer">⚠️ Educational purposes only • Trading involves significant risk</div>
+  <div class="footnote">
+    ይህ መረጃ ለትምህርት ብቻ የቀረበ ነው፣ የፋይናንስ ምክር አይደለም።<br>
+    ዋጋዎች ከ gold-api.com ይመጣሉ፣ ትንታኔው በ AI የተደገፈ ድረ-ገጽ ፍለጋ ነው።
+  </div>
+
+</div>
 
 <script>
-const SYSTEM_PROMPT = `You are an expert Gold (XAUUSD) trading signal analyst with 15+ years of experience.
+  // Telegram WebApp init
+  try{
+    if(window.Telegram && window.Telegram.WebApp){
+      Telegram.WebApp.ready();
+      Telegram.WebApp.expand();
+    }
+  }catch(e){}
 
-When the user sends a chart image, carefully analyze:
-- Current price level visible on the chart
-- Candlestick patterns (bullish/bearish engulfing, doji, hammer, shooting star, etc.)
-- Trend direction (uptrend, downtrend, sideways)
-- Support and resistance levels visible on chart
-- Moving averages if visible
-- Any indicators shown (RSI, MACD, Bollinger Bands, etc.)
-- Volume patterns if visible
-- Key price levels and zones
+  let currentPrice = null;
 
-Based on your visual analysis, respond ONLY with this exact JSON format (no markdown, no extra text):
+  function setError(msg){
+    const box = document.getElementById('errorBox');
+    if(!msg){ box.classList.add('hidden'); return; }
+    box.textContent = msg;
+    box.classList.remove('hidden');
+  }
 
+  async function loadPrice(){
+    try{
+      const res = await fetch('https://api.gold-api.com/price/XAU');
+      if(!res.ok) throw new Error('price fetch failed');
+      const data = await res.json();
+      currentPrice = data.price;
+      document.getElementById('priceValue').textContent =
+        Number(currentPrice).toLocaleString('en-US', {maximumFractionDigits:2, minimumFractionDigits:2});
+      document.getElementById('priceStatus').textContent = 'ቀጥታ ዋጋ';
+      document.getElementById('priceTime').textContent =
+        new Date().toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
+    }catch(err){
+      document.getElementById('priceStatus').textContent = 'ዋጋ ማግኘት አልተቻለም';
+      document.getElementById('pulseDot').style.background = 'var(--red)';
+      document.getElementById('priceValue').textContent = '—';
+    }
+  }
+
+  function setNeedle(score){
+    // score: -100 (strong sell) to 100 (strong buy) -> angle -85deg to 85deg
+    const angle = (score/100) * 85;
+    document.getElementById('needle').style.transform = `rotate(${angle}deg)`;
+  }
+
+  function renderSignal(result){
+    const map = {
+      'ግዢ': {cls:'signal-buy'},
+      'ሽያጭ': {cls:'signal-sell'},
+      'ጠብቅ': {cls:'signal-hold'}
+    };
+    const sig = result.signal || 'ጠብቅ';
+    const info = map[sig] || map['ጠብቅ'];
+    const label = document.getElementById('signalLabel');
+    label.textContent = sig;
+    label.className = 'signal-label ' + info.cls;
+    document.getElementById('confidenceLabel').textContent = `እምነት: ${result.confidence ?? '--'}%`;
+
+    let score = result.score;
+    if(typeof score !== 'number'){
+      score = sig === 'ግዢ' ? 50 : sig === 'ሽያጭ' ? -50 : 0;
+    }
+    setNeedle(score);
+    document.getElementById('gaugeCard').classList.remove('hidden');
+
+    document.getElementById('analysisText').textContent = result.summary || '';
+    document.getElementById('analysisCard').classList.remove('hidden');
+
+    const newsList = document.getElementById('newsList');
+    newsList.innerHTML = '';
+    if(Array.isArray(result.news) && result.news.length){
+      result.news.forEach(n=>{
+        const item = document.createElement('div');
+        item.className = 'news-item';
+        item.innerHTML = `${n.title || ''}<span class="news-source">${n.source || ''}</span>`;
+        newsList.appendChild(item);
+      });
+      document.getElementById('newsCard').classList.remove('hidden');
+    }
+  }
+
+  function extractJson(text){
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    if(start === -1 || end === -1) throw new Error('no json found');
+    return JSON.parse(text.slice(start, end+1));
+  }
+
+  async function runAnalysis(){
+    const btn = document.getElementById('analyzeBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>ዜናዎችን በመፈለግ ላይ...';
+    setError(null);
+
+    const priceText = currentPrice
+      ? `የአሁኑ የወርቅ ዋጋ በግምት $${Number(currentPrice).toFixed(2)} ለአንድ አውንስ ነው።`
+      : `የአሁኑን የወርቅ ዋጋ ራስህ ፍለግ።`;
+
+    const prompt = `አንተ ልምድ ያለው የወርቅ (XAU/USD) ማርኬት ተንታኝ ነህ።
+${priceText}
+የቅርብ ጊዜ ዜናዎችን ፍለግ፡ የFed የወለድ ምጣኔ ውሳኔዎች፣ የዶላር አቅም፣ የዋጋ ግሽበት (inflation) ቁጥሮች፣ የጂኦፖለቲካዊ ውጥረቶች፣ እና ሌላ ለወርቅ ዋጋ ተፅዕኖ የሚያደርግ ወሳኝ ዜና። ከዚያ መሠረት የግብይት ምልክት ስጥ።
+
+ምላሽህ ሙሉ በሙሉ valid JSON ብቻ መሆን አለበት፣ ምንም markdown ምልክት፣ ምንም መግቢያ ጽሁፍ ሳይኖር፣ በዚህ ቅርጽ፡
 {
-  "signal": "BUY" or "SELL" or "WAIT",
-  "currentPrice": number (read from chart),
-  "entry": number,
-  "stopLoss": number,
-  "takeProfit1": number,
-  "takeProfit2": number,
-  "takeProfit3": number,
-  "confidence": number (0-100),
-  "timeframe": timeframe visible on chart,
-  "riskReward": number,
-  "chartPattern": "pattern name identified",
-  "trend": "UPTREND" or "DOWNTREND" or "SIDEWAYS",
-  "supportLevel": number,
-  "resistanceLevel": number,
-  "marketSentiment": "BULLISH" or "BEARISH" or "NEUTRAL",
-  "reasoning": "detailed analysis in Amharic explaining what you see on the chart",
-  "keyLevels": ["level1", "level2", "level3"],
-  "riskWarning": "brief risk warning in Amharic"
-}
+  "signal": "ግዢ" | "ሽያጭ" | "ጠብቅ",
+  "score": -100 እስከ 100 ያለ integer (negative ለሽያጭ፣ positive ለግዢ፣ 0 አካባቢ ለጠብቅ),
+  "confidence": 0 እስከ 100 ያለ integer,
+  "summary": "ለምን ይህ ምልክት እንደተሰጠ የሚገልጽ 2-3 አጫጭር የአማርኛ ዓረፍተ ነገሮች",
+  "news": [ {"title": "የዜናው አጭር ርዕስ በአማርኛ", "source": "የምንጩ ስም"} ] (እስከ 3 ዜናዎች)
+}`;
 
-If no image is provided and user asks for signal, respond with JSON but note that analysis is based on general market conditions without a chart. Use the actual price visible on chart, not estimated prices.`;
+    try{
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 1000,
+          tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
 
-let chatHistory = [];
-let pendingImage = null;
-let loading = false;
-let apiKey = '';
+      if(!res.ok) throw new Error('API error ' + res.status);
+      const data = await res.json();
+      const text = (data.content || [])
+        .filter(b => b.type === 'text')
+        .map(b => b.text)
+        .join('\n');
 
-// Try load from localStorage
-try { apiKey = localStorage.getItem('gold_ai_key') || ''; } catch(e) {}
+      const result = extractJson(text);
+      renderSignal(result);
 
-// API Key UI wiring (after DOM ready, done below in init)
-
-const messagesEl = document.getElementById('messages');
-const textInput = document.getElementById('text-input');
-const sendBtn = document.getElementById('send-btn');
-const dropzone = document.getElementById('dropzone');
-const fileInput = document.getElementById('file-input');
-const dzDefault = document.getElementById('dz-default');
-const dzPreview = document.getElementById('dz-preview');
-const dzThumb = document.getElementById('dz-thumb');
-const dzRemove = document.getElementById('dz-remove');
-const signalBar = document.getElementById('signal-bar');
-
-function fmt(p) { return p ? '$' + Number(p).toFixed(2) : '—'; }
-function fmtTime() { return new Date().toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit'}); }
-
-function updateSendBtn() {
-  sendBtn.disabled = loading || (!textInput.value.trim() && !pendingImage);
-}
-
-function addMessage(role, type, content, opts = {}) {
-  const wrap = document.createElement('div');
-  wrap.className = 'msg-wrap ' + role;
-
-  if (type === 'signal') {
-    const meta = document.createElement('div');
-    meta.className = 'msg-meta';
-    meta.textContent = '🤖 Gold Signal AI • ' + opts.time;
-    wrap.appendChild(meta);
-    wrap.appendChild(buildSignalCard(opts.signal));
-  } else {
-    if (role === 'assistant') {
-      const meta = document.createElement('div');
-      meta.className = 'msg-meta';
-      meta.textContent = '🤖 Gold Signal AI • ' + opts.time;
-      wrap.appendChild(meta);
-    }
-    if (opts.imagePreview) {
-      const img = document.createElement('img');
-      img.src = opts.imagePreview;
-      img.className = 'msg-img';
-      img.style.maxWidth = '82%';
-      wrap.appendChild(img);
-    }
-    const bubble = document.createElement('div');
-    bubble.className = 'msg-bubble ' + role;
-    bubble.textContent = content;
-    wrap.appendChild(bubble);
-    if (role === 'user') {
-      const t = document.createElement('div');
-      t.className = 'msg-time-user';
-      t.textContent = opts.time;
-      wrap.appendChild(t);
+    }catch(err){
+      setError('ትንታኔ ማግኘት አልተቻለም። እንደገና ይሞክሩ።');
+      console.error(err);
+    }finally{
+      btn.disabled = false;
+      btn.textContent = 'ድጋሚ ትንታኔ አግኝ';
     }
   }
 
-  messagesEl.appendChild(wrap);
-  messagesEl.scrollTop = messagesEl.scrollHeight;
-  return wrap;
-}
-
-function showLoading(show) {
-  let el = document.getElementById('loading-indicator');
-  if (show) {
-    if (!el) {
-      el = document.createElement('div');
-      el.id = 'loading-indicator';
-      el.style.cssText = 'display:flex;align-items:center;gap:8px;padding:4px 0';
-      el.innerHTML = '<span style="color:#888;font-size:12px">🤖 Chart ትንተና እየሰራሁ...</span><div class="dot"></div><div class="dot"></div><div class="dot"></div>';
-      messagesEl.appendChild(el);
-      messagesEl.scrollTop = messagesEl.scrollHeight;
-    }
-  } else {
-    if (el) el.remove();
-  }
-}
-
-function buildSignalCard(s) {
-  const isBuy = s.signal === 'BUY';
-  const isSell = s.signal === 'SELL';
-  const color = isBuy ? '#00d09c' : isSell ? '#ff4757' : '#f5a623';
-
-  const card = document.createElement('div');
-  card.className = 'signal-card';
-  card.style.border = `1px solid ${color}55`;
-  card.style.boxShadow = `0 0 24px ${color}18`;
-
-  const signalLabel = isBuy ? '▲ BUY' : isSell ? '▼ SELL' : '⏸ WAIT';
-
-  card.innerHTML = `
-    <div class="sc-header">
-      <div style="display:flex;align-items:center;gap:10px">
-        <div class="sc-signal-badge" style="background:${color}22;border:2px solid ${color};color:${color}">${signalLabel}</div>
-        <div>
-          <div class="sc-name">XAUUSD • ${s.timeframe || '—'}</div>
-          ${s.chartPattern ? `<div class="sc-pattern">📐 ${s.chartPattern}</div>` : ''}
-        </div>
-      </div>
-      <div style="text-align:right">
-        <div class="sc-conf-label">CONFIDENCE</div>
-        <div class="sc-conf-val">${s.confidence}%</div>
-      </div>
-    </div>
-
-    <div class="sc-bar-bg"><div class="sc-bar-fill" style="width:${s.confidence}%;--c:${color}"></div></div>
-
-    ${s.currentPrice ? `
-    <div class="sc-price-box">
-      <span>📊 Chart ላይ ያለ ዋጋ</span>
-      <span>${fmt(s.currentPrice)}</span>
-    </div>` : ''}
-
-    <div class="sc-grid">
-      <div class="sc-cell" style="border-left:3px solid #4fc3f7">
-        <div class="sc-cell-label">ENTRY</div>
-        <div class="sc-cell-val" style="color:#4fc3f7">${fmt(s.entry)}</div>
-      </div>
-      <div class="sc-cell" style="border-left:3px solid #ff4757">
-        <div class="sc-cell-label">STOP LOSS</div>
-        <div class="sc-cell-val" style="color:#ff4757">${fmt(s.stopLoss)}</div>
-      </div>
-      <div class="sc-cell" style="border-left:3px solid #00d09c">
-        <div class="sc-cell-label">TP 1</div>
-        <div class="sc-cell-val" style="color:#00d09c">${fmt(s.takeProfit1)}</div>
-      </div>
-      <div class="sc-cell" style="border-left:3px solid #00d09c">
-        <div class="sc-cell-label">TP 2</div>
-        <div class="sc-cell-val" style="color:#00d09c">${fmt(s.takeProfit2)}</div>
-      </div>
-    </div>
-
-    <div class="sc-bottom-row">
-      <div class="sc-tp3">
-        <div class="lbl">TP 3 (FULL)</div>
-        <div class="val">${fmt(s.takeProfit3)}</div>
-      </div>
-      <div class="sc-rr">
-        <div class="lbl">R:R</div>
-        <div class="val">1:${s.riskReward}</div>
-      </div>
-    </div>
-
-    ${(s.supportLevel || s.resistanceLevel) ? `
-    <div class="sc-levels">
-      ${s.supportLevel ? `<div class="sc-sup"><div class="lbl">SUPPORT</div><div class="val">${fmt(s.supportLevel)}</div></div>` : ''}
-      ${s.resistanceLevel ? `<div class="sc-res"><div class="lbl">RESISTANCE</div><div class="val">${fmt(s.resistanceLevel)}</div></div>` : ''}
-    </div>` : ''}
-
-    <div class="sc-badges">
-      <span class="sc-badge" style="background:${color}20;color:${color}">📊 ${s.marketSentiment}</span>
-      ${s.trend ? `<span class="sc-badge-trend">📈 ${s.trend}</span>` : ''}
-    </div>
-
-    ${s.reasoning ? `
-    <div class="sc-reasoning">
-      <div class="sc-reasoning-title">📝 ትንተና</div>
-      <div class="sc-reasoning-text">${s.reasoning}</div>
-    </div>` : ''}
-
-    ${s.keyLevels && s.keyLevels.length ? `
-    <div class="sc-keylevels">
-      ${s.keyLevels.map(l => `<span class="sc-keylevel">🎯 ${l}</span>`).join('')}
-    </div>` : ''}
-
-    ${s.riskWarning ? `
-    <div class="sc-warning">
-      <div class="sc-warning-text">⚠️ ${s.riskWarning}</div>
-    </div>` : ''}
-  `;
-
-  return card;
-}
-
-function updateSignalBar(s) {
-  const isBuy = s.signal === 'BUY';
-  const color = isBuy ? '#00d09c12' : s.signal === 'SELL' ? '#ff475712' : '#f5a62312';
-  signalBar.style.background = color;
-  signalBar.style.display = 'flex';
-  const sigColor = isBuy ? '#00d09c' : '#ff4757';
-  signalBar.innerHTML = `
-    <span style="color:#888">Latest:</span>
-    <span style="color:${sigColor};font-weight:900">${s.signal}</span>
-    ${s.currentPrice ? `<span style="color:#888">Chart Price:</span><span style="color:#ffd700;font-weight:700">${fmt(s.currentPrice)}</span>` : ''}
-    ${s.entry ? `<span style="color:#888">Entry:</span><span style="color:#4fc3f7;font-weight:700">${fmt(s.entry)}</span>` : ''}
-    ${s.stopLoss ? `<span style="color:#888">SL:</span><span style="color:#ff4757;font-weight:700">${fmt(s.stopLoss)}</span>` : ''}
-  `;
-}
-
-function parseSignal(text) {
-  try {
-    const clean = text.replace(/```json|```/g, '').trim();
-    const s = clean.indexOf('{'), e = clean.lastIndexOf('}');
-    if (s !== -1 && e !== -1) return JSON.parse(clean.slice(s, e + 1));
-  } catch(e) {}
-  return null;
-}
-
-async function sendMessage() {
-  if (loading || (!textInput.value.trim() && !pendingImage)) return;
-
-  const inputText = textInput.value.trim();
-  const imgData = pendingImage;
-  const time = fmtTime();
-
-  const userContent = [];
-  if (imgData) {
-    userContent.push({ type: 'image', source: { type: 'base64', media_type: imgData.mediaType, data: imgData.base64 } });
-  }
-  if (inputText) {
-    userContent.push({ type: 'text', text: inputText });
-  } else if (imgData) {
-    userContent.push({ type: 'text', text: 'ይህን chart ተንትነህ signal ስጠኝ። ከ chart ላይ ትክክለኛ ዋጋ አንብብ።' });
-  }
-
-  addMessage('user', 'text', inputText || '📸 Chart analysis request', { time, imagePreview: imgData?.preview });
-  chatHistory.push({ role: 'user', content: userContent });
-
-  textInput.value = '';
-  clearPendingImage();
-  loading = true;
-  updateSendBtn();
-  showLoading(true);
-  textInput.placeholder = 'Chart upload ወይም ጥያቄ ጠይቅ...';
-
-  try {
-    if (!apiKey) {
-      showLoading(false);
-      addMessage('assistant', 'text', '⚠️ API Key አልተቀመጠም! ↑ ላይ ያለውን ቦታ ላይ API Key አስገባ።', { time: fmtTime() });
-      loading = false;
-      updateSendBtn();
-      return;
-    }
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1000,
-        system: SYSTEM_PROMPT,
-        messages: chatHistory
-      })
-    });
-    const data = await resp.json();
-    const rawText = (data.content || []).map(b => b.text || '').join('');
-    const signal = parseSignal(rawText);
-    chatHistory.push({ role: 'assistant', content: rawText });
-
-    showLoading(false);
-    if (signal) {
-      updateSignalBar(signal);
-      addMessage('assistant', 'signal', '', { time: fmtTime(), signal });
-    } else {
-      addMessage('assistant', 'text', rawText || '❌ Empty response', { time: fmtTime() });
-    }
-  } catch(err) {
-    showLoading(false);
-    addMessage('assistant', 'text', '❌ Error: ' + err.message, { time: fmtTime() });
-  }
-
-  loading = false;
-  updateSendBtn();
-}
-
-function clearPendingImage() {
-  pendingImage = null;
-  dzDefault.style.display = '';
-  dzPreview.style.display = 'none';
-  dropzone.classList.remove('has-image');
-  fileInput.value = '';
-  textInput.placeholder = 'Chart upload ወይም ጥያቄ ጠይቅ...';
-  updateSendBtn();
-}
-
-function setPendingImage(data) {
-  pendingImage = data;
-  dzThumb.src = data.preview;
-  dzDefault.style.display = 'none';
-  dzPreview.style.display = 'flex';
-  dropzone.classList.add('has-image');
-  textInput.placeholder = 'ጥያቄ ጻፍ ወይም ቀጥታ ላክ...';
-  updateSendBtn();
-}
-
-function readFile(file) {
-  if (!file || !file.type.startsWith('image/')) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    const base64 = reader.result.split(',')[1];
-    setPendingImage({ base64, mediaType: file.type, preview: reader.result });
-  };
-  reader.readAsDataURL(file);
-}
-
-// Events
-dropzone.addEventListener('click', (e) => {
-  if (e.target === dzRemove) return;
-  fileInput.click();
-});
-fileInput.addEventListener('change', (e) => readFile(e.target.files[0]));
-dzRemove.addEventListener('click', (e) => { e.stopPropagation(); clearPendingImage(); });
-
-dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('drag-over'); });
-dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
-dropzone.addEventListener('drop', (e) => {
-  e.preventDefault();
-  dropzone.classList.remove('drag-over');
-  readFile(e.dataTransfer.files[0]);
-});
-
-sendBtn.addEventListener('click', sendMessage);
-textInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
-});
-textInput.addEventListener('input', updateSendBtn);
-
-document.querySelectorAll('.quick-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    textInput.value = btn.dataset.text;
-    updateSendBtn();
-    textInput.focus();
-  });
-});
-
-// Wire API key UI
-const apiKeyInput = document.getElementById('api-key-input');
-const apiSaveBtn = document.getElementById('api-save-btn');
-const apiBanner = document.getElementById('api-banner');
-const apiStatus = document.getElementById('api-status');
-
-if (apiKey) {
-  apiKeyInput.value = apiKey;
-  apiBanner.style.display = 'none';
-  apiStatus.style.display = 'block';
-}
-
-apiSaveBtn.addEventListener('click', () => {
-  const val = apiKeyInput.value.trim();
-  if (!val.startsWith('sk-ant-')) {
-    alert('❌ API Key ትክክል አይደለም። "sk-ant-" ብሎ መጀመር አለበት።');
-    return;
-  }
-  apiKey = val;
-  try { localStorage.setItem('gold_ai_key', val); } catch(e) {}
-  apiBanner.style.display = 'none';
-  apiStatus.style.display = 'block';
-});
-
-// Init message
-addMessage('assistant', 'text',
-  '👋 ሰላም! አሁን Chart Image ማስገባት ትችላለህ!\n\n📸 Chart screenshot ስትሰጠኝ:\n• ትክክለኛ ዋጋ ከ chart ላይ አነባለሁ\n• Candlestick patterns አዩዋለሁ\n• Support/Resistance levels ለይቻለሁ\n• ትክክለኛ signal ሰጥቻለሁ\n\nChart አስገባ ⬇️ ወይም ጥያቄ ጠይቅ',
-  { time: fmtTime() }
-);
+  loadPrice();
 </script>
 </body>
 </html>
