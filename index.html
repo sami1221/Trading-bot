@@ -121,6 +121,16 @@
 </head>
 <body>
 
+<!-- API Key Banner -->
+<div id="api-banner" style="background:#1a1a00;border-bottom:1px solid #ffd70040;padding:10px 16px;display:flex;align-items:center;gap:8px;flex-shrink:0">
+  <span style="color:#ffd700;font-size:12px;white-space:nowrap">🔑 API Key:</span>
+  <input id="api-key-input" type="password" placeholder="sk-ant-api03-..." style="flex:1;background:#0a0a1a;border:1px solid #ffd70040;border-radius:8px;padding:7px 10px;color:white;font-size:12px;outline:none;font-family:monospace"/>
+  <button id="api-save-btn" style="background:linear-gradient(135deg,#ffd700,#f5a623);border:none;border-radius:8px;padding:7px 14px;color:#000;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap">አስቀምጥ</button>
+</div>
+<div id="api-status" style="display:none;background:#00d09c12;border-bottom:1px solid #00d09c30;padding:6px 16px;font-size:11px;color:#00d09c;flex-shrink:0">
+  ✅ API Key ተቀምጧል — Chart upload አድርገህ ጀምር!
+</div>
+
 <!-- Header -->
 <div id="header">
   <div id="header-left">
@@ -218,6 +228,12 @@ If no image is provided and user asks for signal, respond with JSON but note tha
 let chatHistory = [];
 let pendingImage = null;
 let loading = false;
+let apiKey = '';
+
+// Try load from localStorage
+try { apiKey = localStorage.getItem('gold_ai_key') || ''; } catch(e) {}
+
+// API Key UI wiring (after DOM ready, done below in init)
 
 const messagesEl = document.getElementById('messages');
 const textInput = document.getElementById('text-input');
@@ -442,9 +458,16 @@ async function sendMessage() {
   textInput.placeholder = 'Chart upload ወይም ጥያቄ ጠይቅ...';
 
   try {
+    if (!apiKey) {
+      showLoading(false);
+      addMessage('assistant', 'text', '⚠️ API Key አልተቀመጠም! ↑ ላይ ያለውን ቦታ ላይ API Key አስገባ።', { time: fmtTime() });
+      loading = false;
+      updateSendBtn();
+      return;
+    }
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: 1000,
@@ -531,6 +554,30 @@ document.querySelectorAll('.quick-btn').forEach(btn => {
     updateSendBtn();
     textInput.focus();
   });
+});
+
+// Wire API key UI
+const apiKeyInput = document.getElementById('api-key-input');
+const apiSaveBtn = document.getElementById('api-save-btn');
+const apiBanner = document.getElementById('api-banner');
+const apiStatus = document.getElementById('api-status');
+
+if (apiKey) {
+  apiKeyInput.value = apiKey;
+  apiBanner.style.display = 'none';
+  apiStatus.style.display = 'block';
+}
+
+apiSaveBtn.addEventListener('click', () => {
+  const val = apiKeyInput.value.trim();
+  if (!val.startsWith('sk-ant-')) {
+    alert('❌ API Key ትክክል አይደለም። "sk-ant-" ብሎ መጀመር አለበት።');
+    return;
+  }
+  apiKey = val;
+  try { localStorage.setItem('gold_ai_key', val); } catch(e) {}
+  apiBanner.style.display = 'none';
+  apiStatus.style.display = 'block';
 });
 
 // Init message
