@@ -1,657 +1,543 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="am">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>XAU/USD · AI Analyst</title>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Gold Signal AI</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{min-height:100vh;background:#0a0a1a;font-family:'Segoe UI',system-ui,sans-serif;display:flex;flex-direction:column;color:white}
+  ::-webkit-scrollbar{width:3px}
+  ::-webkit-scrollbar-thumb{background:#ffd70025;border-radius:2px}
+  @keyframes pulse{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
+  @keyframes spin{to{transform:rotate(360deg)}}
 
-  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  /* Header */
+  #header{background:linear-gradient(90deg,#111128,#1a1a3a);border-bottom:1px solid #ffd70025;padding:12px 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+  #header-left{display:flex;align-items:center;gap:10px}
+  #header-icon{font-size:26px}
+  #header-title{color:#ffd700;font-weight:800;font-size:16px;letter-spacing:1px}
+  #header-sub{color:#666;font-size:10px}
+  #vision-badge{background:#00d09c15;border:1px solid #00d09c40;border-radius:8px;padding:6px 12px;text-align:center}
+  #vision-label{color:#888;font-size:9px}
+  #vision-status{color:#00d09c;font-weight:700;font-size:12px}
 
-  :root {
-    --bg:       #070b12;
-    --surface:  #0d1420;
-    --surface2: #111a2a;
-    --border:   #1c2a3f;
-    --gold:     #e8b84b;
-    --gold-dim: #9a7320;
-    --buy:      #2de07a;
-    --sell:     #f04e6b;
-    --wait:     #5e7a9e;
-    --text:     #c8d8f0;
-    --muted:    #4a6080;
-    --mono:     'Space Mono', monospace;
-    --sans:     'Space Grotesk', sans-serif;
-  }
+  /* Signal bar */
+  #signal-bar{display:none;background:#00000020;border-bottom:1px solid #ffffff10;padding:6px 18px;align-items:center;gap:12px;overflow-x:auto;font-size:11px;white-space:nowrap;flex-shrink:0}
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--sans);
-    min-height: 100vh;
-    font-size: 15px;
-  }
+  /* Messages */
+  #messages{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:12px}
+  .msg-wrap{display:flex;flex-direction:column}
+  .msg-wrap.user{align-items:flex-end}
+  .msg-wrap.assistant{align-items:flex-start}
+  .msg-meta{color:#666;font-size:11px;margin-bottom:4px}
+  .msg-bubble{max-width:82%;padding:11px 15px;border-radius:18px;font-size:13px;line-height:1.65;white-space:pre-wrap}
+  .msg-bubble.user{background:linear-gradient(135deg,#ffd700,#f5a623);color:#000;border-radius:18px 18px 4px 18px}
+  .msg-bubble.assistant{background:#1a1a32;border:1px solid #ffffff12;color:#ddd;border-radius:18px 18px 18px 4px}
+  .msg-time-user{color:#555;font-size:10px;margin-top:3px;text-align:right}
+  .msg-img{max-width:100%;border-radius:10px;margin-bottom:6px;border:1px solid #ffd70030;display:block}
 
-  /* ── HEADER ── */
-  header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 20px;
-    border-bottom: 1px solid var(--border);
-    background: var(--surface);
-    position: sticky; top: 0; z-index: 10;
-  }
-  .brand { display: flex; align-items: center; gap: 10px; }
-  .brand-icon {
-    width: 34px; height: 34px;
-    background: linear-gradient(135deg, var(--gold-dim), var(--gold));
-    border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 16px;
-  }
-  .brand-text { font-family: var(--mono); font-size: 0.95rem; color: var(--gold); letter-spacing: 1px; }
-  .brand-sub  { font-size: 0.65rem; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; }
-  .ai-badge {
-    background: rgba(232,184,75,0.1);
-    border: 1px solid rgba(232,184,75,0.3);
-    border-radius: 20px;
-    padding: 4px 12px;
-    font-size: 0.68rem;
-    color: var(--gold);
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-  }
+  /* Loading dots */
+  #loading{display:none;align-items:center;gap:8px;padding:4px 0}
+  #loading span{color:#888;font-size:12px}
+  .dot{width:6px;height:6px;border-radius:50%;background:#ffd700;animation:pulse 1.2s ease-in-out infinite}
+  .dot:nth-child(2){animation-delay:.2s}
+  .dot:nth-child(3){animation-delay:.4s}
 
-  /* ── LAYOUT ── */
-  main { max-width: 520px; margin: 0 auto; padding: 20px 16px 40px; }
+  /* Drop zone */
+  #dropzone{margin:0 16px 8px;border:2px dashed #ffffff20;border-radius:12px;padding:14px;text-align:center;cursor:pointer;transition:all .2s}
+  #dropzone:hover{border-color:#ffd70060}
+  #dropzone.drag-over{border-color:#ffd700;background:#ffd70008}
+  #dropzone.has-image{border-color:#00d09c;background:#00d09c08;padding:8px}
+  #dz-default{pointer-events:none}
+  #dz-default .dz-icon{font-size:22px;margin-bottom:4px}
+  #dz-default .dz-text{color:#888;font-size:12px}
+  #dz-default .dz-sub{color:#555;font-size:10px;margin-top:2px}
+  #dz-preview{display:none;align-items:center;gap:10px}
+  #dz-preview img{height:60px;border-radius:6px;object-fit:cover}
+  #dz-preview-info{flex:1;text-align:left}
+  #dz-preview-info .ready{color:#00d09c;font-size:12px;font-weight:700}
+  #dz-preview-info .hint{color:#888;font-size:11px}
+  #dz-remove{background:#ff475720;border:none;color:#ff4757;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:12px}
 
-  /* ── TICKER ── */
-  .ticker {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 16px 18px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 14px;
-  }
-  .ticker-pair { font-family: var(--mono); font-size: 0.75rem; color: var(--muted); letter-spacing: 2px; }
-  .ticker-price { font-family: var(--mono); font-size: 2rem; color: var(--gold); font-weight: 700; line-height: 1; }
-  .ticker-right { text-align: right; }
-  .ticker-tf {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 3px 10px;
-    font-family: var(--mono);
-    font-size: 0.75rem;
-    color: var(--text);
-  }
+  /* Quick actions */
+  #quick-actions{padding:0 16px 6px;display:flex;gap:6px;flex-wrap:wrap;flex-shrink:0}
+  .quick-btn{background:#1a1a32;border:1px solid #ffd70030;color:#ffd700;padding:5px 10px;border-radius:16px;font-size:11px;cursor:pointer;transition:background .15s}
+  .quick-btn:hover{background:#2a2a42}
 
-  /* ── CARD ── */
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 18px;
-    margin-bottom: 14px;
-  }
-  .card-title {
-    font-size: 0.68rem;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 14px;
-  }
+  /* Input row */
+  #input-row{padding:6px 16px 16px;display:flex;gap:8px;flex-shrink:0}
+  #text-input{flex:1;background:#1a1a32;border:1px solid #ffd70025;border-radius:12px;padding:11px 14px;color:white;font-size:13px;outline:none;transition:border-color .2s;font-family:inherit}
+  #text-input:focus{border-color:#ffd700}
+  #text-input::placeholder{color:#555}
+  #send-btn{background:linear-gradient(135deg,#ffd700,#f5a623);border:none;border-radius:12px;padding:11px 18px;color:#000;font-weight:700;font-size:13px;cursor:pointer;transition:all .2s;white-space:nowrap}
+  #send-btn:disabled{background:#222;color:#555;cursor:not-allowed}
 
-  /* ── INPUTS ── */
-  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
-  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+  /* Footer */
+  #footer{text-align:center;color:#333;font-size:9px;padding-bottom:10px;flex-shrink:0}
 
-  .field label {
-    display: block;
-    font-size: 0.65rem;
-    color: var(--muted);
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    margin-bottom: 5px;
-  }
-  .field input, .field select, .field textarea {
-    width: 100%;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 9px;
-    padding: 10px 12px;
-    color: var(--text);
-    font-family: var(--mono);
-    font-size: 0.88rem;
-    outline: none;
-    transition: border-color 0.2s;
-    -webkit-appearance: none;
-  }
-  .field input:focus, .field select:focus, .field textarea:focus {
-    border-color: var(--gold-dim);
-  }
-  .field textarea { resize: vertical; min-height: 70px; font-family: var(--sans); font-size: 0.85rem; line-height: 1.5; }
-  .field select option { background: #0d1420; }
-
-  /* ── ANALYZE BTN ── */
-  .btn-main {
-    width: 100%;
-    background: linear-gradient(135deg, #b8860b, var(--gold));
-    color: #070b12;
-    border: none;
-    border-radius: 11px;
-    padding: 15px;
-    font-family: var(--mono);
-    font-size: 0.95rem;
-    font-weight: 700;
-    letter-spacing: 2px;
-    cursor: pointer;
-    transition: opacity 0.2s, transform 0.1s;
-    margin-bottom: 18px;
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-  }
-  .btn-main:hover { opacity: 0.9; }
-  .btn-main:active { transform: scale(0.98); }
-  .btn-main:disabled { opacity: 0.4; cursor: not-allowed; }
-
-  /* ── LOADING ── */
-  .loading {
-    display: none;
-    text-align: center;
-    padding: 40px 20px;
-  }
-  .loading.show { display: block; }
-  .loader {
-    width: 44px; height: 44px;
-    border: 3px solid var(--border);
-    border-top-color: var(--gold);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    margin: 0 auto 16px;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .loading-text { font-family: var(--mono); font-size: 0.8rem; color: var(--muted); letter-spacing: 1px; }
-  .thinking-dots::after {
-    content: '';
-    animation: dots 1.2s steps(4, end) infinite;
-  }
-  @keyframes dots {
-    0%   { content: ''; }
-    25%  { content: '.'; }
-    50%  { content: '..'; }
-    75%  { content: '...'; }
-  }
-
-  /* ── RESULT ── */
-  #result { display: none; }
-
-  /* Signal banner */
-  .sig-banner {
-    border-radius: 14px;
-    padding: 20px 18px;
-    margin-bottom: 14px;
-    border: 1px solid;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  .sig-banner.SELL { background: rgba(240,78,107,0.08); border-color: var(--sell); }
-  .sig-banner.BUY  { background: rgba(45,224,122,0.08); border-color: var(--buy); }
-  .sig-banner.WAIT { background: rgba(94,122,158,0.08); border-color: var(--wait); }
-
-  .sig-label { font-size: 0.65rem; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 4px; }
-  .sig-word {
-    font-family: var(--mono);
-    font-size: 2.4rem;
-    font-weight: 700;
-    letter-spacing: 3px;
-    line-height: 1;
-  }
-  .sig-word.SELL { color: var(--sell); }
-  .sig-word.BUY  { color: var(--buy); }
-  .sig-word.WAIT { color: var(--wait); }
-
-  .sig-confidence { text-align: right; }
-  .conf-label { font-size: 0.65rem; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; }
-  .conf-ring {
-    width: 60px; height: 60px;
-    margin-left: auto;
-  }
-
-  /* Levels */
-  .levels-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
-  .lvl {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 12px 14px;
-  }
-  .lvl-name { font-size: 0.63rem; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
-  .lvl-val  { font-family: var(--mono); font-size: 1.05rem; }
-  .lvl-val.entry { color: var(--gold); }
-  .lvl-val.sl    { color: var(--sell); }
-  .lvl-val.tp    { color: var(--buy); }
-  .lvl-rr { font-size: 0.68rem; color: var(--muted); margin-top: 2px; }
-
-  /* AI Analysis text */
-  .analysis-body {
-    font-size: 0.88rem;
-    line-height: 1.75;
-    color: var(--text);
-    white-space: pre-wrap;
-  }
-  .analysis-body strong { color: var(--gold); font-weight: 600; }
-
-  /* Streaming cursor */
-  .cursor {
-    display: inline-block;
-    width: 2px; height: 14px;
-    background: var(--gold);
-    vertical-align: middle;
-    margin-left: 2px;
-    animation: blink 0.7s steps(2) infinite;
-  }
-  @keyframes blink { to { opacity: 0; } }
-
-  /* Risk */
-  .risk-note {
-    background: rgba(232,184,75,0.05);
-    border: 1px solid rgba(232,184,75,0.15);
-    border-radius: 10px;
-    padding: 12px 15px;
-    font-size: 0.78rem;
-    color: var(--muted);
-    line-height: 1.6;
-    margin-top: 14px;
-  }
-  .risk-note strong { color: var(--gold); }
-
-  /* Error */
-  .error-box {
-    display: none;
-    background: rgba(240,78,107,0.08);
-    border: 1px solid rgba(240,78,107,0.3);
-    border-radius: 10px;
-    padding: 14px 16px;
-    font-size: 0.83rem;
-    color: #f8a0b0;
-    margin-bottom: 14px;
-  }
-
-  footer {
-    text-align: center;
-    padding: 20px;
-    font-size: 0.65rem;
-    color: #25344a;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-  }
+  /* Signal Card */
+  .signal-card{background:linear-gradient(135deg,#12122a 0%,#1a1a3e 100%);border-radius:16px;padding:18px;width:100%;max-width:520px}
+  .sc-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+  .sc-signal-badge{border-radius:10px;padding:7px 16px;font-size:18px;font-weight:900;letter-spacing:2px}
+  .sc-name{font-weight:700;font-size:13px;color:#ffd700}
+  .sc-pattern{color:#aaa;font-size:11px}
+  .sc-conf-label{color:#888;font-size:10px}
+  .sc-conf-val{color:white;font-weight:900;font-size:26px}
+  .sc-bar-bg{background:#ffffff12;border-radius:4px;height:5px;margin-bottom:14px}
+  .sc-bar-fill{height:100%;background:linear-gradient(90deg,var(--c),#ffd700);border-radius:4px}
+  .sc-price-box{background:#ffd70015;border:1px solid #ffd70040;border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+  .sc-price-box span:first-child{color:#888;font-size:11px}
+  .sc-price-box span:last-child{color:#ffd700;font-weight:900;font-size:18px}
+  .sc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+  .sc-cell{background:#ffffff08;border-radius:10px;padding:10px 12px}
+  .sc-cell-label{color:#777;font-size:10px;margin-bottom:3px}
+  .sc-cell-val{font-weight:700;font-size:15px}
+  .sc-bottom-row{display:flex;gap:8px;margin-bottom:12px}
+  .sc-tp3{flex:1;background:#ffffff08;border-radius:10px;padding:10px 12px;border-left:3px solid #a29bfe}
+  .sc-tp3 .lbl{color:#777;font-size:10px;margin-bottom:3px}
+  .sc-tp3 .val{color:#a29bfe;font-weight:700;font-size:15px}
+  .sc-rr{background:#ffffff08;border-radius:10px;padding:10px 12px;text-align:center;min-width:80px}
+  .sc-rr .lbl{color:#777;font-size:10px;margin-bottom:3px}
+  .sc-rr .val{color:#ffd700;font-weight:900;font-size:18px}
+  .sc-levels{display:flex;gap:8px;margin-bottom:12px}
+  .sc-sup{flex:1;background:#00d09c10;border-radius:8px;padding:8px 12px}
+  .sc-sup .lbl{color:#888;font-size:10px}
+  .sc-sup .val{color:#00d09c;font-weight:700}
+  .sc-res{flex:1;background:#ff475710;border-radius:8px;padding:8px 12px}
+  .sc-res .lbl{color:#888;font-size:10px}
+  .sc-res .val{color:#ff4757;font-weight:700}
+  .sc-badges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .sc-badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
+  .sc-badge-trend{background:#ffffff12;color:#ccc;padding:3px 10px;border-radius:20px;font-size:11px}
+  .sc-reasoning{background:#ffffff08;border-radius:10px;padding:12px;margin-bottom:10px}
+  .sc-reasoning-title{color:#ffd700;font-size:11px;margin-bottom:6px;font-weight:700}
+  .sc-reasoning-text{color:#ccc;font-size:13px;line-height:1.7}
+  .sc-keylevels{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+  .sc-keylevel{background:#ffffff10;color:#ddd;padding:3px 8px;border-radius:6px;font-size:11px}
+  .sc-warning{background:#ff475710;border:1px solid #ff475730;border-radius:8px;padding:8px 12px}
+  .sc-warning-text{color:#ff4757;font-size:11px}
 </style>
 </head>
 <body>
 
-<header>
-  <div class="brand">
-    <div class="brand-icon">⚡</div>
+<!-- Header -->
+<div id="header">
+  <div id="header-left">
+    <span id="header-icon">🥇</span>
     <div>
-      <div class="brand-text">XAU/USD</div>
-      <div class="brand-sub">AI Analyst</div>
+      <div id="header-title">GOLD SIGNAL AI</div>
+      <div id="header-sub">Chart Vision • Claude Powered</div>
     </div>
   </div>
-  <div class="ai-badge">Claude AI</div>
-</header>
-
-<main>
-
-  <!-- TICKER -->
-  <div class="ticker">
-    <div>
-      <div class="ticker-pair">XAUUSD · GOLD vs USD</div>
-      <div class="ticker-price" id="tickerPrice">—</div>
-    </div>
-    <div class="ticker-right">
-      <select class="ticker-tf" id="tfSelect">
-        <option>M5</option>
-        <option>M15</option>
-        <option value="H1" selected>H1</option>
-        <option>H4</option>
-        <option>D1</option>
-      </select>
-    </div>
+  <div id="vision-badge">
+    <div id="vision-label">VISION</div>
+    <div id="vision-status">ENABLED ✓</div>
   </div>
+</div>
 
-  <!-- INPUT CARD -->
-  <div class="card">
-    <div class="card-title">Market Data</div>
+<!-- Signal Bar -->
+<div id="signal-bar"></div>
 
-    <div class="grid2">
-      <div class="field">
-        <label>Current Price</label>
-        <input type="number" id="inPrice" placeholder="4251.49" step="0.01"
-          oninput="document.getElementById('tickerPrice').textContent=this.value||'—'"/>
-      </div>
-      <div class="field">
-        <label>Previous Close</label>
-        <input type="number" id="inPrevClose" placeholder="4310.00" step="0.01"/>
-      </div>
-    </div>
+<!-- Messages -->
+<div id="messages"></div>
 
-    <div class="grid3">
-      <div class="field">
-        <label>MA 20</label>
-        <input type="number" id="inMA20" placeholder="4290" step="0.01"/>
-      </div>
-      <div class="field">
-        <label>MA 50</label>
-        <input type="number" id="inMA50" placeholder="4315" step="0.01"/>
-      </div>
-      <div class="field">
-        <label>MA 200</label>
-        <input type="number" id="inMA200" placeholder="4180" step="0.01"/>
-      </div>
-    </div>
-
-    <div class="grid3">
-      <div class="field">
-        <label>RSI (14)</label>
-        <input type="number" id="inRSI" placeholder="38" min="0" max="100"/>
-      </div>
-      <div class="field">
-        <label>MACD</label>
-        <select id="inMACD">
-          <option value="bullish_cross">Bull Cross</option>
-          <option value="bearish_cross" selected>Bear Cross</option>
-          <option value="bullish">Bullish</option>
-          <option value="bearish">Bearish</option>
-          <option value="neutral">Neutral</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>Stochastic</label>
-        <input type="number" id="inStoch" placeholder="22" min="0" max="100"/>
-      </div>
-    </div>
-
-    <div class="grid2">
-      <div class="field">
-        <label>Candle Pattern</label>
-        <select id="inCandle">
-          <option value="strong_bearish" selected>Strong Bearish</option>
-          <option value="bearish">Bearish</option>
-          <option value="shooting_star">Shooting Star</option>
-          <option value="doji">Doji</option>
-          <option value="hammer">Hammer</option>
-          <option value="bullish">Bullish</option>
-          <option value="strong_bullish">Strong Bullish</option>
-          <option value="engulfing_bull">Bullish Engulfing</option>
-          <option value="engulfing_bear">Bearish Engulfing</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>Volume</label>
-        <select id="inVol">
-          <option value="very_high" selected>Very High</option>
-          <option value="high">High</option>
-          <option value="normal">Normal</option>
-          <option value="low">Low</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="grid2">
-      <div class="field">
-        <label>Support Level</label>
-        <input type="number" id="inSupport" placeholder="4239" step="0.01"/>
-      </div>
-      <div class="field">
-        <label>Resistance Level</label>
-        <input type="number" id="inResistance" placeholder="4330" step="0.01"/>
-      </div>
-    </div>
-
-    <div class="field" style="margin-bottom:0">
-      <label>Additional Notes (optional)</label>
-      <textarea id="inNotes" placeholder="e.g. News event just dropped, big red candle, market opening..."></textarea>
-    </div>
+<!-- Drop Zone -->
+<div id="dropzone">
+  <div id="dz-default">
+    <div class="dz-icon">📸</div>
+    <div class="dz-text">Chart Screenshot ይጎትቱ ወይም ይጫኑ</div>
+    <div class="dz-sub">PNG, JPG, WEBP</div>
   </div>
-
-  <button class="btn-main" id="analyzeBtn" onclick="runAnalysis()">
-    ⚡ ANALYZE WITH AI
-  </button>
-
-  <!-- ERROR -->
-  <div class="error-box" id="errorBox"></div>
-
-  <!-- LOADING -->
-  <div class="loading" id="loadingBox">
-    <div class="loader"></div>
-    <div class="loading-text thinking-dots">AI is analyzing the market</div>
+  <div id="dz-preview">
+    <img id="dz-thumb" src="" alt="preview"/>
+    <div id="dz-preview-info">
+      <div class="ready">✓ Chart ተዘጋጅቷል</div>
+      <div class="hint">ጥያቄ ጻፍ ወይም ቀጥታ ላክ</div>
+    </div>
+    <button id="dz-remove">✕</button>
   </div>
+  <input id="file-input" type="file" accept="image/*" style="display:none"/>
+</div>
 
-  <!-- RESULT -->
-  <div id="result">
+<!-- Quick Actions -->
+<div id="quick-actions">
+  <button class="quick-btn" data-text="Chart ስጠኝ signal">Chart ስጠኝ signal</button>
+  <button class="quick-btn" data-text="Trend ምንድን ነው?">Trend ምንድን ነው?</button>
+  <button class="quick-btn" data-text="Key levels ለይ">Key levels ለይ</button>
+  <button class="quick-btn" data-text="Risk management">Risk management</button>
+</div>
 
-    <!-- Signal Banner -->
-    <div class="sig-banner" id="sigBanner">
-      <div>
-        <div class="sig-label">Signal</div>
-        <div class="sig-word" id="sigWord">—</div>
-      </div>
-      <div class="sig-confidence">
-        <div class="conf-label">Confidence</div>
-        <svg class="conf-ring" viewBox="0 0 60 60">
-          <circle cx="30" cy="30" r="24" fill="none" stroke="#1c2a3f" stroke-width="5"/>
-          <circle cx="30" cy="30" r="24" fill="none" stroke-width="5"
-            id="confArc"
-            stroke-dasharray="150.8"
-            stroke-dashoffset="150.8"
-            stroke-linecap="round"
-            transform="rotate(-90 30 30)"
-            style="transition: stroke-dashoffset 1s ease"/>
-          <text x="30" y="35" text-anchor="middle" font-family="Space Mono" font-size="11"
-            fill="#c8d8f0" id="confPct">—</text>
-        </svg>
-      </div>
-    </div>
+<!-- Input Row -->
+<div id="input-row">
+  <input id="text-input" type="text" placeholder="Chart upload ወይም ጥያቄ ጠይቅ..."/>
+  <button id="send-btn" disabled>📊 ላክ</button>
+</div>
 
-    <!-- Levels -->
-    <div class="levels-grid" id="levelsGrid">
-      <div class="lvl"><div class="lvl-name">Entry</div><div class="lvl-val entry" id="lvEntry">—</div></div>
-      <div class="lvl"><div class="lvl-name">Stop Loss</div><div class="lvl-val sl" id="lvSL">—</div></div>
-      <div class="lvl"><div class="lvl-name">Target 1</div><div class="lvl-val tp" id="lvTP1">—</div><div class="lvl-rr" id="rrTP1"></div></div>
-      <div class="lvl"><div class="lvl-name">Target 2</div><div class="lvl-val tp" id="lvTP2">—</div><div class="lvl-rr" id="rrTP2"></div></div>
-    </div>
-
-    <!-- AI Analysis -->
-    <div class="card">
-      <div class="card-title">AI Analysis</div>
-      <div class="analysis-body" id="analysisText"></div>
-    </div>
-
-    <!-- Risk -->
-    <div class="risk-note">
-      <strong>⚠ Risk Management:</strong> Account balance ከ 1–2% በላይ አታስቀምጥ። TP1 ላይ ስትደርስ partial close አድርግና SL ወደ break-even አምጣ። ይህ educational purpose ብቻ ነው።
-    </div>
-
-  </div>
-
-</main>
-
-<footer>For educational use only · Not financial advice</footer>
+<!-- Footer -->
+<div id="footer">⚠️ Educational purposes only • Trading involves significant risk</div>
 
 <script>
-async function runAnalysis() {
-  const price      = document.getElementById('inPrice').value;
-  const prevClose  = document.getElementById('inPrevClose').value;
-  const ma20       = document.getElementById('inMA20').value;
-  const ma50       = document.getElementById('inMA50').value;
-  const ma200      = document.getElementById('inMA200').value;
-  const rsi        = document.getElementById('inRSI').value;
-  const macd       = document.getElementById('inMACD').value;
-  const stoch      = document.getElementById('inStoch').value;
-  const candle     = document.getElementById('inCandle').value;
-  const volume     = document.getElementById('inVol').value;
-  const support    = document.getElementById('inSupport').value;
-  const resistance = document.getElementById('inResistance').value;
-  const notes      = document.getElementById('inNotes').value;
-  const tf         = document.getElementById('tfSelect').value;
+const SYSTEM_PROMPT = `You are an expert Gold (XAUUSD) trading signal analyst with 15+ years of experience.
 
-  if (!price) { showError('Please enter the current price.'); return; }
+When the user sends a chart image, carefully analyze:
+- Current price level visible on the chart
+- Candlestick patterns (bullish/bearish engulfing, doji, hammer, shooting star, etc.)
+- Trend direction (uptrend, downtrend, sideways)
+- Support and resistance levels visible on chart
+- Moving averages if visible
+- Any indicators shown (RSI, MACD, Bollinger Bands, etc.)
+- Volume patterns if visible
+- Key price levels and zones
 
-  // UI state
-  document.getElementById('analyzeBtn').disabled = true;
-  document.getElementById('errorBox').style.display = 'none';
-  document.getElementById('loadingBox').classList.add('show');
-  document.getElementById('result').style.display = 'none';
+Based on your visual analysis, respond ONLY with this exact JSON format (no markdown, no extra text):
 
-  const prompt = `You are an expert XAU/USD (Gold) technical analyst. Analyze the following market data and provide a clear trading signal.
-
-MARKET DATA:
-- Pair: XAU/USD (Gold vs USD)
-- Timeframe: ${tf}
-- Current Price: ${price}
-${prevClose ? `- Previous Close: ${prevClose}` : ''}
-${ma20 ? `- MA20: ${ma20}` : ''}
-${ma50 ? `- MA50: ${ma50}` : ''}
-${ma200 ? `- MA200: ${ma200}` : ''}
-${rsi ? `- RSI(14): ${rsi}` : ''}
-- MACD: ${macd}
-${stoch ? `- Stochastic: ${stoch}` : ''}
-- Last Candle Pattern: ${candle}
-- Volume: ${volume}
-${support ? `- Key Support: ${support}` : ''}
-${resistance ? `- Key Resistance: ${resistance}` : ''}
-${notes ? `- Trader Notes: ${notes}` : ''}
-
-Respond ONLY in the following JSON format with no extra text, no markdown, no backticks:
 {
-  "signal": "SELL" or "BUY" or "WAIT",
-  "confidence": <number 0-100>,
-  "entry": <number>,
-  "sl": <number>,
-  "tp1": <number>,
-  "tp2": <number>,
-  "analysis": "<detailed analysis in 4-6 sentences explaining why this signal, what indicators confirm it, key risks, and what to watch>"
-}`;
+  "signal": "BUY" or "SELL" or "WAIT",
+  "currentPrice": number (read from chart),
+  "entry": number,
+  "stopLoss": number,
+  "takeProfit1": number,
+  "takeProfit2": number,
+  "takeProfit3": number,
+  "confidence": number (0-100),
+  "timeframe": timeframe visible on chart,
+  "riskReward": number,
+  "chartPattern": "pattern name identified",
+  "trend": "UPTREND" or "DOWNTREND" or "SIDEWAYS",
+  "supportLevel": number,
+  "resistanceLevel": number,
+  "marketSentiment": "BULLISH" or "BEARISH" or "NEUTRAL",
+  "reasoning": "detailed analysis in Amharic explaining what you see on the chart",
+  "keyLevels": ["level1", "level2", "level3"],
+  "riskWarning": "brief risk warning in Amharic"
+}
+
+If no image is provided and user asks for signal, respond with JSON but note that analysis is based on general market conditions without a chart. Use the actual price visible on chart, not estimated prices.`;
+
+let chatHistory = [];
+let pendingImage = null;
+let loading = false;
+
+const messagesEl = document.getElementById('messages');
+const textInput = document.getElementById('text-input');
+const sendBtn = document.getElementById('send-btn');
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('file-input');
+const dzDefault = document.getElementById('dz-default');
+const dzPreview = document.getElementById('dz-preview');
+const dzThumb = document.getElementById('dz-thumb');
+const dzRemove = document.getElementById('dz-remove');
+const signalBar = document.getElementById('signal-bar');
+
+function fmt(p) { return p ? '$' + Number(p).toFixed(2) : '—'; }
+function fmtTime() { return new Date().toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit'}); }
+
+function updateSendBtn() {
+  sendBtn.disabled = loading || (!textInput.value.trim() && !pendingImage);
+}
+
+function addMessage(role, type, content, opts = {}) {
+  const wrap = document.createElement('div');
+  wrap.className = 'msg-wrap ' + role;
+
+  if (type === 'signal') {
+    const meta = document.createElement('div');
+    meta.className = 'msg-meta';
+    meta.textContent = '🤖 Gold Signal AI • ' + opts.time;
+    wrap.appendChild(meta);
+    wrap.appendChild(buildSignalCard(opts.signal));
+  } else {
+    if (role === 'assistant') {
+      const meta = document.createElement('div');
+      meta.className = 'msg-meta';
+      meta.textContent = '🤖 Gold Signal AI • ' + opts.time;
+      wrap.appendChild(meta);
+    }
+    if (opts.imagePreview) {
+      const img = document.createElement('img');
+      img.src = opts.imagePreview;
+      img.className = 'msg-img';
+      img.style.maxWidth = '82%';
+      wrap.appendChild(img);
+    }
+    const bubble = document.createElement('div');
+    bubble.className = 'msg-bubble ' + role;
+    bubble.textContent = content;
+    wrap.appendChild(bubble);
+    if (role === 'user') {
+      const t = document.createElement('div');
+      t.className = 'msg-time-user';
+      t.textContent = opts.time;
+      wrap.appendChild(t);
+    }
+  }
+
+  messagesEl.appendChild(wrap);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+  return wrap;
+}
+
+function showLoading(show) {
+  let el = document.getElementById('loading-indicator');
+  if (show) {
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'loading-indicator';
+      el.style.cssText = 'display:flex;align-items:center;gap:8px;padding:4px 0';
+      el.innerHTML = '<span style="color:#888;font-size:12px">🤖 Chart ትንተና እየሰራሁ...</span><div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+      messagesEl.appendChild(el);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+  } else {
+    if (el) el.remove();
+  }
+}
+
+function buildSignalCard(s) {
+  const isBuy = s.signal === 'BUY';
+  const isSell = s.signal === 'SELL';
+  const color = isBuy ? '#00d09c' : isSell ? '#ff4757' : '#f5a623';
+
+  const card = document.createElement('div');
+  card.className = 'signal-card';
+  card.style.border = `1px solid ${color}55`;
+  card.style.boxShadow = `0 0 24px ${color}18`;
+
+  const signalLabel = isBuy ? '▲ BUY' : isSell ? '▼ SELL' : '⏸ WAIT';
+
+  card.innerHTML = `
+    <div class="sc-header">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="sc-signal-badge" style="background:${color}22;border:2px solid ${color};color:${color}">${signalLabel}</div>
+        <div>
+          <div class="sc-name">XAUUSD • ${s.timeframe || '—'}</div>
+          ${s.chartPattern ? `<div class="sc-pattern">📐 ${s.chartPattern}</div>` : ''}
+        </div>
+      </div>
+      <div style="text-align:right">
+        <div class="sc-conf-label">CONFIDENCE</div>
+        <div class="sc-conf-val">${s.confidence}%</div>
+      </div>
+    </div>
+
+    <div class="sc-bar-bg"><div class="sc-bar-fill" style="width:${s.confidence}%;--c:${color}"></div></div>
+
+    ${s.currentPrice ? `
+    <div class="sc-price-box">
+      <span>📊 Chart ላይ ያለ ዋጋ</span>
+      <span>${fmt(s.currentPrice)}</span>
+    </div>` : ''}
+
+    <div class="sc-grid">
+      <div class="sc-cell" style="border-left:3px solid #4fc3f7">
+        <div class="sc-cell-label">ENTRY</div>
+        <div class="sc-cell-val" style="color:#4fc3f7">${fmt(s.entry)}</div>
+      </div>
+      <div class="sc-cell" style="border-left:3px solid #ff4757">
+        <div class="sc-cell-label">STOP LOSS</div>
+        <div class="sc-cell-val" style="color:#ff4757">${fmt(s.stopLoss)}</div>
+      </div>
+      <div class="sc-cell" style="border-left:3px solid #00d09c">
+        <div class="sc-cell-label">TP 1</div>
+        <div class="sc-cell-val" style="color:#00d09c">${fmt(s.takeProfit1)}</div>
+      </div>
+      <div class="sc-cell" style="border-left:3px solid #00d09c">
+        <div class="sc-cell-label">TP 2</div>
+        <div class="sc-cell-val" style="color:#00d09c">${fmt(s.takeProfit2)}</div>
+      </div>
+    </div>
+
+    <div class="sc-bottom-row">
+      <div class="sc-tp3">
+        <div class="lbl">TP 3 (FULL)</div>
+        <div class="val">${fmt(s.takeProfit3)}</div>
+      </div>
+      <div class="sc-rr">
+        <div class="lbl">R:R</div>
+        <div class="val">1:${s.riskReward}</div>
+      </div>
+    </div>
+
+    ${(s.supportLevel || s.resistanceLevel) ? `
+    <div class="sc-levels">
+      ${s.supportLevel ? `<div class="sc-sup"><div class="lbl">SUPPORT</div><div class="val">${fmt(s.supportLevel)}</div></div>` : ''}
+      ${s.resistanceLevel ? `<div class="sc-res"><div class="lbl">RESISTANCE</div><div class="val">${fmt(s.resistanceLevel)}</div></div>` : ''}
+    </div>` : ''}
+
+    <div class="sc-badges">
+      <span class="sc-badge" style="background:${color}20;color:${color}">📊 ${s.marketSentiment}</span>
+      ${s.trend ? `<span class="sc-badge-trend">📈 ${s.trend}</span>` : ''}
+    </div>
+
+    ${s.reasoning ? `
+    <div class="sc-reasoning">
+      <div class="sc-reasoning-title">📝 ትንተና</div>
+      <div class="sc-reasoning-text">${s.reasoning}</div>
+    </div>` : ''}
+
+    ${s.keyLevels && s.keyLevels.length ? `
+    <div class="sc-keylevels">
+      ${s.keyLevels.map(l => `<span class="sc-keylevel">🎯 ${l}</span>`).join('')}
+    </div>` : ''}
+
+    ${s.riskWarning ? `
+    <div class="sc-warning">
+      <div class="sc-warning-text">⚠️ ${s.riskWarning}</div>
+    </div>` : ''}
+  `;
+
+  return card;
+}
+
+function updateSignalBar(s) {
+  const isBuy = s.signal === 'BUY';
+  const color = isBuy ? '#00d09c12' : s.signal === 'SELL' ? '#ff475712' : '#f5a62312';
+  signalBar.style.background = color;
+  signalBar.style.display = 'flex';
+  const sigColor = isBuy ? '#00d09c' : '#ff4757';
+  signalBar.innerHTML = `
+    <span style="color:#888">Latest:</span>
+    <span style="color:${sigColor};font-weight:900">${s.signal}</span>
+    ${s.currentPrice ? `<span style="color:#888">Chart Price:</span><span style="color:#ffd700;font-weight:700">${fmt(s.currentPrice)}</span>` : ''}
+    ${s.entry ? `<span style="color:#888">Entry:</span><span style="color:#4fc3f7;font-weight:700">${fmt(s.entry)}</span>` : ''}
+    ${s.stopLoss ? `<span style="color:#888">SL:</span><span style="color:#ff4757;font-weight:700">${fmt(s.stopLoss)}</span>` : ''}
+  `;
+}
+
+function parseSignal(text) {
+  try {
+    const clean = text.replace(/```json|```/g, '').trim();
+    const s = clean.indexOf('{'), e = clean.lastIndexOf('}');
+    if (s !== -1 && e !== -1) return JSON.parse(clean.slice(s, e + 1));
+  } catch(e) {}
+  return null;
+}
+
+async function sendMessage() {
+  if (loading || (!textInput.value.trim() && !pendingImage)) return;
+
+  const inputText = textInput.value.trim();
+  const imgData = pendingImage;
+  const time = fmtTime();
+
+  const userContent = [];
+  if (imgData) {
+    userContent.push({ type: 'image', source: { type: 'base64', media_type: imgData.mediaType, data: imgData.base64 } });
+  }
+  if (inputText) {
+    userContent.push({ type: 'text', text: inputText });
+  } else if (imgData) {
+    userContent.push({ type: 'text', text: 'ይህን chart ተንትነህ signal ስጠኝ። ከ chart ላይ ትክክለኛ ዋጋ አንብብ።' });
+  }
+
+  addMessage('user', 'text', inputText || '📸 Chart analysis request', { time, imagePreview: imgData?.preview });
+  chatHistory.push({ role: 'user', content: userContent });
+
+  textInput.value = '';
+  clearPendingImage();
+  loading = true;
+  updateSendBtn();
+  showLoading(true);
+  textInput.placeholder = 'Chart upload ወይም ጥያቄ ጠይቅ...';
 
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
+        model: 'claude-sonnet-4-6',
         max_tokens: 1000,
-        messages: [{ role: "user", content: prompt }]
+        system: SYSTEM_PROMPT,
+        messages: chatHistory
       })
     });
+    const data = await resp.json();
+    const rawText = (data.content || []).map(b => b.text || '').join('');
+    const signal = parseSignal(rawText);
+    chatHistory.push({ role: 'assistant', content: rawText });
 
-    const data = await response.json();
-    const raw = data.content.map(b => b.text || '').join('');
-
-    let parsed;
-    try {
-      const clean = raw.replace(/```json|```/g, '').trim();
-      parsed = JSON.parse(clean);
-    } catch(e) {
-      // fallback: extract JSON from text
-      const match = raw.match(/\{[\s\S]*\}/);
-      if (match) parsed = JSON.parse(match[0]);
-      else throw new Error('Could not parse AI response');
-    }
-
-    renderResult(parsed, parseFloat(price));
-
-  } catch (err) {
-    showError('AI analysis failed. Please try again. (' + err.message + ')');
-  } finally {
-    document.getElementById('analyzeBtn').disabled = false;
-    document.getElementById('loadingBox').classList.remove('show');
-  }
-}
-
-function renderResult(d, price) {
-  const sig = (d.signal || 'WAIT').toUpperCase();
-  const conf = Math.min(100, Math.max(0, parseInt(d.confidence) || 50));
-
-  // Banner
-  const banner = document.getElementById('sigBanner');
-  banner.className = `sig-banner ${sig}`;
-  const sw = document.getElementById('sigWord');
-  sw.textContent = sig;
-  sw.className = `sig-word ${sig}`;
-
-  // Confidence ring
-  const circ = 150.8;
-  document.getElementById('confArc').style.strokeDashoffset = circ - (circ * conf / 100);
-  document.getElementById('confArc').style.stroke =
-    sig === 'BUY' ? '#2de07a' : sig === 'SELL' ? '#f04e6b' : '#5e7a9e';
-  document.getElementById('confPct').textContent = conf + '%';
-
-  // Levels
-  const entry = d.entry || price;
-  const sl    = d.sl;
-  const tp1   = d.tp1;
-  const tp2   = d.tp2;
-
-  document.getElementById('lvEntry').textContent = fmt(entry);
-  document.getElementById('lvSL').textContent    = sl  ? fmt(sl)  : '—';
-  document.getElementById('lvTP1').textContent   = tp1 ? fmt(tp1) : '—';
-  document.getElementById('lvTP2').textContent   = tp2 ? fmt(tp2) : '—';
-
-  if (sl && tp1) {
-    const risk   = Math.abs(entry - sl);
-    const reward1 = Math.abs(tp1 - entry);
-    const rr1 = (reward1 / risk).toFixed(1);
-    document.getElementById('rrTP1').textContent = `RR 1:${rr1}`;
-  }
-  if (sl && tp2) {
-    const risk   = Math.abs(entry - sl);
-    const reward2 = Math.abs(tp2 - entry);
-    const rr2 = (reward2 / risk).toFixed(1);
-    document.getElementById('rrTP2').textContent = `RR 1:${rr2}`;
-  }
-
-  // Analysis — typewriter effect
-  const el = document.getElementById('analysisText');
-  el.innerHTML = '';
-  const cursor = document.createElement('span');
-  cursor.className = 'cursor';
-  el.appendChild(cursor);
-
-  const text = (d.analysis || '').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-  let i = 0;
-  const raw = d.analysis || '';
-
-  function typeNext() {
-    if (i < raw.length) {
-      el.insertBefore(document.createTextNode(raw[i]), cursor);
-      i++;
-      setTimeout(typeNext, 18);
+    showLoading(false);
+    if (signal) {
+      updateSignalBar(signal);
+      addMessage('assistant', 'signal', '', { time: fmtTime(), signal });
     } else {
-      cursor.remove();
+      addMessage('assistant', 'text', rawText || '❌ Empty response', { time: fmtTime() });
     }
+  } catch(err) {
+    showLoading(false);
+    addMessage('assistant', 'text', '❌ Error: ' + err.message, { time: fmtTime() });
   }
-  typeNext();
 
-  // Show result
-  document.getElementById('result').style.display = 'block';
-  document.getElementById('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  loading = false;
+  updateSendBtn();
 }
 
-function fmt(n) { return parseFloat(n).toFixed(2); }
-
-function showError(msg) {
-  const eb = document.getElementById('errorBox');
-  eb.textContent = '⚠ ' + msg;
-  eb.style.display = 'block';
-  document.getElementById('loadingBox').classList.remove('show');
-  document.getElementById('analyzeBtn').disabled = false;
+function clearPendingImage() {
+  pendingImage = null;
+  dzDefault.style.display = '';
+  dzPreview.style.display = 'none';
+  dropzone.classList.remove('has-image');
+  fileInput.value = '';
+  textInput.placeholder = 'Chart upload ወይም ጥያቄ ጠይቅ...';
+  updateSendBtn();
 }
+
+function setPendingImage(data) {
+  pendingImage = data;
+  dzThumb.src = data.preview;
+  dzDefault.style.display = 'none';
+  dzPreview.style.display = 'flex';
+  dropzone.classList.add('has-image');
+  textInput.placeholder = 'ጥያቄ ጻፍ ወይም ቀጥታ ላክ...';
+  updateSendBtn();
+}
+
+function readFile(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const base64 = reader.result.split(',')[1];
+    setPendingImage({ base64, mediaType: file.type, preview: reader.result });
+  };
+  reader.readAsDataURL(file);
+}
+
+// Events
+dropzone.addEventListener('click', (e) => {
+  if (e.target === dzRemove) return;
+  fileInput.click();
+});
+fileInput.addEventListener('change', (e) => readFile(e.target.files[0]));
+dzRemove.addEventListener('click', (e) => { e.stopPropagation(); clearPendingImage(); });
+
+dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+dropzone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropzone.classList.remove('drag-over');
+  readFile(e.dataTransfer.files[0]);
+});
+
+sendBtn.addEventListener('click', sendMessage);
+textInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+textInput.addEventListener('input', updateSendBtn);
+
+document.querySelectorAll('.quick-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    textInput.value = btn.dataset.text;
+    updateSendBtn();
+    textInput.focus();
+  });
+});
+
+// Init message
+addMessage('assistant', 'text',
+  '👋 ሰላም! አሁን Chart Image ማስገባት ትችላለህ!\n\n📸 Chart screenshot ስትሰጠኝ:\n• ትክክለኛ ዋጋ ከ chart ላይ አነባለሁ\n• Candlestick patterns አዩዋለሁ\n• Support/Resistance levels ለይቻለሁ\n• ትክክለኛ signal ሰጥቻለሁ\n\nChart አስገባ ⬇️ ወይም ጥያቄ ጠይቅ',
+  { time: fmtTime() }
+);
 </script>
 </body>
 </html>
