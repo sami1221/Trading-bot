@@ -1,0 +1,1831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Gold Signal Pro</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+  :root {
+    --gold: #D4A017;
+    --gold-light: #F5C842;
+    --gold-dim: #8B6914;
+    --bg: #0A0A0F;
+    --surface: #111118;
+    --surface2: #1A1A24;
+    --border: #2A2A3A;
+    --text: #E8E8F0;
+    --muted: #6B6B80;
+    --buy: #22C55E;
+    --sell: #EF4444;
+    --neutral: #F59E0B;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Space Grotesk', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(10,10,15,0.95);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .logo { display: flex; align-items: center; gap: 8px; }
+
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+
+  .logo-text { font-size: 15px; font-weight: 700; letter-spacing: -0.3px; color: var(--text); }
+  .logo-text span { color: var(--gold); }
+
+  .live-badge {
+    display: flex; align-items: center; gap: 5px;
+    background: rgba(34,197,94,0.12);
+    border: 1px solid rgba(34,197,94,0.25);
+    border-radius: 20px; padding: 4px 10px;
+    font-size: 11px; font-weight: 600; color: var(--buy);
+    font-family: 'Space Mono', monospace;
+  }
+
+  .live-badge.stale { background: rgba(107,107,128,0.12); border-color: rgba(107,107,128,0.25); color: var(--muted); }
+
+  .live-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--buy); animation: pulse 1.5s infinite;
+  }
+
+  .live-badge.stale .live-dot { background: var(--muted); animation: none; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.7); }
+  }
+
+  .price-hero {
+    margin: 16px;
+    background: var(--surface);
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    overflow: hidden; position: relative;
+  }
+
+  .price-hero::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+
+  .price-input-area { padding: 16px; border-bottom: 1px solid var(--border); }
+
+  .input-label {
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--muted); margin-bottom: 8px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+
+  .updated-tag { font-family: 'Space Mono', monospace; font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--muted); font-size: 10px; }
+
+  .price-input-row { display: flex; gap: 8px; align-items: center; }
+
+  .live-price-display {
+    flex: 1; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 10px;
+    color: var(--text); font-family: 'Space Mono', monospace;
+    font-size: 20px; font-weight: 700;
+    padding: 12px 14px;
+  }
+
+  .live-price-display.dim { color: var(--muted); font-size: 14px; font-weight: 500; }
+
+  .icon-btn {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--gold); font-size: 16px;
+    width: 44px; height: 44px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: transform 0.15s, opacity 0.15s;
+  }
+
+  .icon-btn:active { transform: scale(0.94); }
+  .icon-btn.spinning { animation: spin 0.8s linear infinite; }
+
+  .analyze-btn {
+    width: 100%; margin-top: 10px;
+    background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    border: none; border-radius: 10px; color: #000;
+    font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 700;
+    padding: 12px 16px; cursor: pointer;
+    transition: transform 0.15s, opacity 0.15s;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+
+  .analyze-btn:active { transform: scale(0.98); opacity: 0.9; }
+  .analyze-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .price-stats {
+    display: grid; grid-template-columns: repeat(2, 1fr);
+    padding: 12px 16px; gap: 8px;
+  }
+
+  .stat-item { text-align: center; }
+
+  .stat-label {
+    font-size: 10px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 3px;
+  }
+
+  .stat-value { font-family: 'Space Mono', monospace; font-size: 12px; font-weight: 700; color: var(--text); }
+  .stat-value.up { color: var(--buy); }
+  .stat-value.down { color: var(--sell); }
+
+  .signal-box {
+    margin: 0 16px 16px; border-radius: 16px;
+    border: 1px solid var(--border); overflow: hidden; display: none;
+  }
+
+  .signal-box.visible { display: block; }
+
+  .signal-header {
+    padding: 14px 16px; display: flex;
+    align-items: center; justify-content: space-between;
+  }
+
+  .signal-header.buy { background: rgba(34,197,94,0.1); border-bottom: 1px solid rgba(34,197,94,0.2); }
+  .signal-header.sell { background: rgba(239,68,68,0.1); border-bottom: 1px solid rgba(239,68,68,0.2); }
+  .signal-header.hold { background: rgba(245,158,11,0.1); border-bottom: 1px solid rgba(245,158,11,0.2); }
+
+  .signal-type { display: flex; align-items: center; gap: 8px; }
+
+  .signal-icon {
+    width: 36px; height: 36px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; font-size: 18px;
+  }
+
+  .signal-icon.buy { background: rgba(34,197,94,0.2); }
+  .signal-icon.sell { background: rgba(239,68,68,0.2); }
+  .signal-icon.hold { background: rgba(245,158,11,0.2); }
+
+  .signal-label { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+  .signal-label.buy { color: var(--buy); }
+  .signal-label.sell { color: var(--sell); }
+  .signal-label.hold { color: var(--neutral); }
+
+  .confidence-pill {
+    font-family: 'Space Mono', monospace; font-size: 12px;
+    font-weight: 700; padding: 4px 10px; border-radius: 20px;
+  }
+
+  .confidence-pill.buy { background: rgba(34,197,94,0.15); color: var(--buy); border: 1px solid rgba(34,197,94,0.3); }
+  .confidence-pill.sell { background: rgba(239,68,68,0.15); color: var(--sell); border: 1px solid rgba(239,68,68,0.3); }
+  .confidence-pill.hold { background: rgba(245,158,11,0.15); color: var(--neutral); border: 1px solid rgba(245,158,11,0.3); }
+
+  .levels-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 1px; background: var(--border); border-bottom: 1px solid var(--border);
+  }
+
+  .level-cell { background: var(--surface); padding: 12px; text-align: center; }
+
+  .level-name {
+    font-size: 10px; text-transform: uppercase;
+    letter-spacing: 0.8px; color: var(--muted); margin-bottom: 4px;
+  }
+
+  .level-value { font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700; }
+  .level-value.entry { color: var(--gold); }
+  .level-value.tp { color: var(--buy); }
+  .level-value.sl { color: var(--sell); }
+
+  .strategy-tag {
+    display: flex; align-items: center; gap: 6px;
+    padding: 8px 16px; background: rgba(212,160,23,0.08);
+    border-bottom: 1px solid var(--border);
+    font-size: 10.5px; color: var(--gold); font-weight: 600; line-height: 1.4;
+  }
+
+  /* ── 4-way confluence checklist ── */
+  .confluence-list {
+    background: var(--surface2); border-bottom: 1px solid var(--border);
+    padding: 4px 0;
+  }
+
+  .confluence-row {
+    padding: 8px 16px; border-bottom: 1px solid var(--border);
+    display: flex; flex-direction: column; gap: 3px;
+  }
+
+  .confluence-row:last-child { border-bottom: none; }
+
+  .confluence-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+
+  .confluence-name { font-size: 12px; font-weight: 600; color: var(--text); }
+
+  .confluence-badge {
+    font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700;
+    padding: 2px 8px; border-radius: 20px; flex-shrink: 0;
+  }
+
+  .confluence-badge.buy { background: rgba(34,197,94,0.15); color: var(--buy); }
+  .confluence-badge.sell { background: rgba(239,68,68,0.15); color: var(--sell); }
+  .confluence-badge.hold { background: rgba(245,158,11,0.15); color: var(--neutral); }
+
+  .confluence-detail { font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+  .analysis-body { padding: 14px 16px; background: var(--surface); }
+
+  .analysis-text { font-size: 13px; line-height: 1.7; color: #B0B0C0; }
+
+  .ai-disclaimer {
+    margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);
+    font-size: 10.5px; line-height: 1.5; color: var(--muted);
+  }
+
+  .section-title {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 1.2px; color: var(--muted);
+    margin: 16px 16px 8px;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .news-list { margin: 0 16px; display: flex; flex-direction: column; gap: 8px; }
+
+  .news-item {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 12px; cursor: pointer; transition: border-color 0.2s;
+    display: block; text-decoration: none;
+  }
+
+  .news-item:active { border-color: var(--gold); }
+
+  .news-meta { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+
+  .news-source {
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.8px; color: var(--gold);
+  }
+
+  .news-time { font-size: 10px; color: var(--muted); font-family: 'Space Mono', monospace; }
+  .news-dot { width: 3px; height: 3px; border-radius: 50%; background: var(--border); }
+
+  .news-headline { font-size: 13px; font-weight: 500; line-height: 1.5; color: var(--text); margin-bottom: 6px; }
+
+  .news-sentiment {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 20px;
+  }
+
+  .news-sentiment.bullish { background: rgba(34,197,94,0.1); color: var(--buy); }
+  .news-sentiment.bearish { background: rgba(239,68,68,0.1); color: var(--sell); }
+  .news-sentiment.neutral { background: rgba(107,107,128,0.15); color: var(--muted); }
+
+  .loading-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(10,10,15,0.85); backdrop-filter: blur(8px);
+    z-index: 200; align-items: center; justify-content: center;
+    flex-direction: column; gap: 16px;
+  }
+
+  .loading-overlay.visible { display: flex; }
+
+  .loader-ring {
+    width: 52px; height: 52px; border-radius: 50%;
+    border: 3px solid var(--border); border-top-color: var(--gold);
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loader-text { font-size: 13px; color: var(--muted); font-family: 'Space Mono', monospace; }
+
+  .error-msg {
+    margin: 0 16px 16px;
+    background: rgba(239,68,68,0.08);
+    border: 1px solid rgba(239,68,68,0.2);
+    border-radius: 12px; padding: 12px 14px;
+    font-size: 13px; color: #FF9090; display: none;
+  }
+
+  .error-msg.visible { display: block; }
+
+  .spacer { height: 24px; }
+
+  .bottom-nav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: rgba(10,10,15,0.97);
+    border-top: 1px solid var(--border);
+    display: flex;
+    padding: 8px 0 max(8px, env(safe-area-inset-bottom));
+  }
+
+  .nav-item {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; gap: 3px; padding: 6px;
+    cursor: pointer; opacity: 0.4; transition: opacity 0.2s;
+  }
+
+  .nav-item.active { opacity: 1; }
+  .nav-item .nav-icon { font-size: 20px; }
+  .nav-item .nav-label { font-size: 10px; font-weight: 600; color: var(--gold); }
+
+  .content-pad { padding-bottom: 70px; }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .history-list { margin: 0 16px; display: flex; flex-direction: column; gap: 8px; }
+
+  .history-item {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 12px;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  }
+
+  .history-left { display: flex; align-items: center; gap: 10px; }
+
+  .history-badge {
+    width: 34px; height: 34px; border-radius: 9px;
+    display: flex; align-items: center; justify-content: center; font-size: 15px;
+    flex-shrink: 0;
+  }
+
+  .history-badge.buy { background: rgba(34,197,94,0.15); }
+  .history-badge.sell { background: rgba(239,68,68,0.15); }
+  .history-badge.hold { background: rgba(245,158,11,0.15); }
+
+  .history-signal { font-size: 13px; font-weight: 700; }
+  .history-signal.buy { color: var(--buy); }
+  .history-signal.sell { color: var(--sell); }
+  .history-signal.hold { color: var(--neutral); }
+
+  .history-meta { font-size: 11px; color: var(--muted); font-family: 'Space Mono', monospace; }
+
+  .history-right { text-align: right; }
+  .history-price { font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700; color: var(--text); }
+  .history-conf { font-size: 10px; color: var(--muted); font-family: 'Space Mono', monospace; }
+
+  .clear-history-btn {
+    display: block; margin: 4px 16px 0; background: none; border: none;
+    color: var(--muted); font-family: 'Space Grotesk', sans-serif;
+    font-size: 12px; padding: 8px; cursor: pointer; text-decoration: underline;
+  }
+
+  /* ── Backtest tab ── */
+  .backtest-panel { margin: 0 16px; }
+
+  .backtest-config {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 14px; margin-bottom: 14px;
+  }
+
+  .backtest-config-label {
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.8px; color: var(--muted); margin-bottom: 8px;
+  }
+
+  .backtest-select {
+    width: 100%; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 10px;
+    color: var(--text); font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px; padding: 11px 12px; outline: none; margin-bottom: 10px;
+  }
+
+  .backtest-run-btn {
+    width: 100%; background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    border: none; border-radius: 10px; color: #000;
+    font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 700;
+    padding: 12px 16px; cursor: pointer;
+    transition: transform 0.15s, opacity 0.15s;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+
+  .backtest-run-btn:active { transform: scale(0.98); opacity: 0.9; }
+  .backtest-run-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .backtest-empty {
+    text-align: center; padding: 30px 16px; color: var(--muted); font-size: 13px; line-height: 1.6;
+  }
+
+  .backtest-stats-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr);
+    gap: 8px; margin-bottom: 14px;
+  }
+
+  .backtest-stat-cell {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 12px; text-align: center;
+  }
+
+  .backtest-stat-cell.wide { grid-column: 1 / -1; }
+
+  .backtest-stat-label {
+    font-size: 10px; color: var(--muted); text-transform: uppercase;
+    letter-spacing: 0.6px; margin-bottom: 4px;
+  }
+
+  .backtest-stat-value {
+    font-family: 'Space Mono', monospace; font-size: 16px; font-weight: 700; color: var(--text);
+  }
+
+  .backtest-stat-value.up { color: var(--buy); }
+  .backtest-stat-value.down { color: var(--sell); }
+
+  .backtest-equity-wrap {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 14px; margin-bottom: 14px;
+  }
+
+  .backtest-equity-title {
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.8px; color: var(--muted); margin-bottom: 10px;
+  }
+
+  .backtest-equity-svg { width: 100%; height: 120px; display: block; overflow: visible; }
+
+  .backtest-disclaimer {
+    font-size: 10.5px; line-height: 1.6; color: var(--muted);
+    padding: 0 2px 4px;
+  }
+
+  .btn-spinner {
+    width: 14px; height: 14px;
+    border: 2px solid rgba(0,0,0,0.3); border-top-color: #000;
+    border-radius: 50%; animation: spin 0.7s linear infinite; display: none;
+  }
+
+  /* ── API key onboarding modal ── */
+  .key-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(10,10,15,0.92); backdrop-filter: blur(8px);
+    z-index: 300; align-items: flex-end; justify-content: center;
+    overflow-y: auto;
+  }
+
+  .key-overlay.visible { display: flex; }
+
+  .key-sheet {
+    width: 100%; max-width: 480px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    border-radius: 20px 20px 0 0;
+    padding: 22px 18px max(22px, env(safe-area-inset-bottom));
+    position: relative;
+    max-height: 92vh; overflow-y: auto;
+  }
+
+  .key-sheet::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+
+  .key-icon {
+    width: 44px; height: 44px; border-radius: 12px;
+    background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; margin-bottom: 14px;
+  }
+
+  .key-title { font-size: 17px; font-weight: 700; margin-bottom: 6px; }
+
+  .key-desc { font-size: 13px; line-height: 1.6; color: var(--muted); margin-bottom: 16px; }
+
+  .key-desc a { color: var(--gold); text-decoration: none; }
+
+  .key-section { margin-bottom: 16px; }
+
+  .key-section-label {
+    font-size: 11px; font-weight: 700; color: var(--text);
+    margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between;
+  }
+
+  .key-section-hint { font-size: 11px; color: var(--muted); margin-bottom: 8px; }
+  .key-section-hint a { color: var(--gold); text-decoration: none; }
+
+  .key-field-wrap { position: relative; margin-bottom: 4px; }
+
+  .key-field {
+    width: 100%; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 10px;
+    color: var(--text); font-family: 'Space Mono', monospace;
+    font-size: 13px; padding: 12px 40px 12px 12px; outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .key-field:focus { border-color: var(--gold); }
+  .key-field.has-saved-value { border-color: rgba(34,197,94,0.4); }
+
+  .key-toggle-visibility {
+    position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; color: var(--muted); font-size: 15px;
+    cursor: pointer; padding: 4px;
+  }
+
+  .key-error {
+    font-size: 12px; color: var(--sell); margin-bottom: 10px; display: none;
+  }
+
+  .key-error.visible { display: block; }
+
+  .key-save-btn {
+    width: 100%; background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    border: none; border-radius: 10px; color: #000;
+    font-family: 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 700;
+    padding: 13px; cursor: pointer; transition: transform 0.15s, opacity 0.15s;
+  }
+
+  .key-save-btn:active { transform: scale(0.98); opacity: 0.9; }
+
+  .key-cancel-btn {
+    width: 100%; background: none; border: none;
+    color: var(--muted); font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px; padding: 12px; cursor: pointer; display: none;
+  }
+
+  .key-cancel-btn.visible { display: block; }
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loader-ring"></div>
+  <div class="loader-text" id="loaderText">Analyzing Gold Market...</div>
+</div>
+
+<!-- API key onboarding sheet -->
+<div class="key-overlay" id="keyOverlay">
+  <div class="key-sheet">
+    <div class="key-icon">🔑</div>
+    <div class="key-title">Connect your data keys</div>
+    <div class="key-desc">
+      Each user connects their own free keys so the app runs under your own quota. All keys are stored only on this device.
+    </div>
+    <div class="key-error" id="keyError"></div>
+
+    <div class="key-section">
+      <div class="key-section-label">Gemini API key</div>
+      <div class="key-section-hint">Writes the plain-language commentary — get one at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a></div>
+      <div class="key-field-wrap">
+        <input type="password" class="key-field" id="geminiKeyInput" placeholder="AIza..." autocomplete="off" autocapitalize="off" spellcheck="false" />
+        <button class="key-toggle-visibility" data-target="geminiKeyInput" type="button">👁️</button>
+      </div>
+    </div>
+
+    <div class="key-section">
+      <div class="key-section-label">Twelve Data API key</div>
+      <div class="key-section-hint">Live price + historical candles for the strategies — get one at <a href="https://twelvedata.com/pricing" target="_blank" rel="noopener">twelvedata.com</a> (free plan)</div>
+      <div class="key-field-wrap">
+        <input type="password" class="key-field" id="twelveKeyInput" placeholder="Your Twelve Data key" autocomplete="off" autocapitalize="off" spellcheck="false" />
+        <button class="key-toggle-visibility" data-target="twelveKeyInput" type="button">👁️</button>
+      </div>
+    </div>
+
+    <div class="key-section">
+      <div class="key-section-label">Marketaux API key</div>
+      <div class="key-section-hint">Real gold news + sentiment — get one at <a href="https://www.marketaux.com/account/dashboard" target="_blank" rel="noopener">marketaux.com</a> (free plan)</div>
+      <div class="key-field-wrap">
+        <input type="password" class="key-field" id="marketauxKeyInput" placeholder="Your Marketaux key" autocomplete="off" autocapitalize="off" spellcheck="false" />
+        <button class="key-toggle-visibility" data-target="marketauxKeyInput" type="button">👁️</button>
+      </div>
+    </div>
+
+    <button class="key-save-btn" onclick="saveApiKeys()">Save &amp; Continue</button>
+    <button class="key-cancel-btn" id="keyCancelBtn" onclick="closeKeyModal()">Cancel</button>
+  </div>
+</div>
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-icon">🥇</div>
+    <div class="logo-text">Gold<span>Signal</span></div>
+  </div>
+  <div class="live-badge" id="liveBadge">
+    <div class="live-dot"></div>
+    <span id="liveBadgeText">LIVE</span>
+  </div>
+</div>
+
+<div class="content-pad">
+
+  <div class="error-msg" id="errorMsg"></div>
+
+  <div class="tab-panel active" id="tabSignal">
+  <div class="price-hero">
+    <div class="price-input-area">
+      <div class="input-label">
+        <span>Live Gold Price (XAU/USD)</span>
+        <span class="updated-tag" id="updatedTag"></span>
+      </div>
+      <div class="price-input-row">
+        <div class="live-price-display" id="livePriceDisplay">Connect your keys to load price</div>
+        <button class="icon-btn" id="refreshBtn" onclick="fetchLivePrice()" title="Refresh price">🔄</button>
+      </div>
+      <button class="analyze-btn" id="analyzeBtn" onclick="runAnalysis()" disabled>
+        <div class="btn-spinner" id="btnSpinner"></div>
+        <span id="btnText">⚡ Analyze</span>
+      </button>
+    </div>
+    <div class="price-stats">
+      <div class="stat-item">
+        <div class="stat-label">24h Change</div>
+        <div class="stat-value" id="changeDisplay">—</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Session</div>
+        <div class="stat-value" id="sessionDisplay">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="signal-box" id="signalBox">
+    <div class="strategy-tag">📐 4-system confluence: SMA/RSI Trend + SMC (structure) + ICT (liquidity/FVG) + MSNR (S/R levels). A BUY/SELL only fires when ALL FOUR agree — otherwise HOLD. Gemini only narrates this; it never decides it.</div>
+    <div class="signal-header" id="signalHeader">
+      <div class="signal-type">
+        <div class="signal-icon" id="signalIcon"></div>
+        <div class="signal-label" id="signalLabel"></div>
+      </div>
+      <div class="confidence-pill" id="confidencePill"></div>
+    </div>
+    <div class="confluence-list" id="confluenceList"></div>
+    <div class="levels-grid">
+      <div class="level-cell">
+        <div class="level-name">Entry</div>
+        <div class="level-value entry" id="entryLevel">—</div>
+      </div>
+      <div class="level-cell">
+        <div class="level-name">Take Profit</div>
+        <div class="level-value tp" id="tpLevel">—</div>
+      </div>
+      <div class="level-cell">
+        <div class="level-name">Stop Loss</div>
+        <div class="level-value sl" id="slLevel">—</div>
+      </div>
+    </div>
+    <div class="analysis-body">
+      <div class="analysis-text" id="analysisText"></div>
+      <div class="ai-disclaimer">Each of the four rows above is computed independently from live candle data (SMA/RSI, swing-based market structure, liquidity-sweep/fair-value-gap detection, and clustered support/resistance). The combined BUY/SELL/HOLD only fires on full agreement. Gemini does not choose the signal — it only writes the plain-language explanation. This is not financial advice, and agreement between rules does not guarantee an outcome.</div>
+    </div>
+  </div>
+  </div>
+
+  <div class="tab-panel" id="tabNews">
+    <div class="section-title">Market News</div>
+    <div class="news-list" id="newsList">
+      <div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">
+        Connect your keys to load live news
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-panel" id="tabHistory">
+    <div class="section-title">Signal History</div>
+    <div class="history-list" id="historyList">
+      <div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">
+        No signals yet — run an analysis to start building history
+      </div>
+    </div>
+    <button class="clear-history-btn" id="clearHistoryBtn" onclick="clearHistory()" style="display:none;">Clear history</button>
+  </div>
+
+  <div class="tab-panel" id="tabBacktest">
+    <div class="section-title">Backtest (walk-forward, no lookahead)</div>
+    <div class="backtest-panel">
+      <div class="backtest-config">
+        <div class="backtest-config-label">Historical candles to test</div>
+        <select class="backtest-select" id="backtestCandleCount">
+          <option value="500">500 candles (~3 weeks on 1h)</option>
+          <option value="1000" selected>1000 candles (~6 weeks on 1h)</option>
+          <option value="2000">2000 candles (~3 months on 1h)</option>
+        </select>
+        <button class="backtest-run-btn" id="backtestRunBtn" onclick="runBacktest()">
+          <div class="btn-spinner" id="backtestSpinner"></div>
+          <span id="backtestBtnText">▶ Run Backtest</span>
+        </button>
+      </div>
+
+      <div class="backtest-results" id="backtestResults" style="display:none;">
+        <div class="backtest-stats-grid" id="backtestStatsGrid"></div>
+        <div class="backtest-equity-wrap">
+          <div class="backtest-equity-title">Equity curve (cumulative R multiple)</div>
+          <svg class="backtest-equity-svg" id="backtestEquitySvg" viewBox="0 0 300 100" preserveAspectRatio="none"></svg>
+        </div>
+        <div class="backtest-disclaimer">
+          Walk-forward simulation using only the same SMA/RSI + SMC + ICT + MSNR confluence rule, applied bar-by-bar so no future candle is ever used to generate a past signal. It does <strong>not</strong> model spread, slippage, commissions, or partial fills, and free-plan candle history is limited — treat these numbers as a rough sanity check on the rule, not a profit guarantee. Past performance on this sample does not predict future results.
+        </div>
+      </div>
+
+      <div class="backtest-empty" id="backtestEmpty">
+        Pick a candle count and tap Run Backtest to see how this exact rule would have performed historically.
+      </div>
+    </div>
+  </div>
+
+  <div class="spacer"></div>
+</div>
+
+<div class="bottom-nav">
+  <div class="nav-item active" id="navSignal" onclick="switchTab('signal')">
+    <div class="nav-icon">📊</div>
+    <div class="nav-label">Signal</div>
+  </div>
+  <div class="nav-item" id="navNews" onclick="switchTab('news')">
+    <div class="nav-icon">📰</div>
+    <div class="nav-label">News</div>
+  </div>
+  <div class="nav-item" id="navHistory" onclick="switchTab('history')">
+    <div class="nav-icon">📈</div>
+    <div class="nav-label">History</div>
+  </div>
+  <div class="nav-item" id="navBacktest" onclick="switchTab('backtest')">
+    <div class="nav-icon">🧪</div>
+    <div class="nav-label">Backtest</div>
+  </div>
+  <div class="nav-item" id="settingsNav" onclick="openKeyModal(true)">
+    <div class="nav-icon">⚙️</div>
+    <div class="nav-label">Settings</div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════
+//  Each user supplies their own keys (Gemini,
+//  Twelve Data, Marketaux). Stored only on this
+//  device via localStorage — nothing hardcoded,
+//  nothing sent anywhere except directly to each
+//  provider's own API.
+//
+//  STRATEGY (confluence of four independent rules,
+//  each computed from real historical candles):
+//   1. SMA/RSI Trend  — SMA20/SMA50 crossover filtered by RSI14
+//   2. SMC            — swing-based market structure + break of structure
+//   3. ICT            — liquidity sweep + fair value gap
+//   4. MSNR           — clustered multi support/resistance levels
+//  A BUY/SELL only fires when ALL FOUR agree; otherwise HOLD.
+//  Gemini is called ONLY to turn the computed breakdown + news
+//  into a short plain-language explanation — it cannot override
+//  or invent the signal itself.
+// ════════════════════════════════════════════════
+const GEMINI_MODEL = 'gemini-3.6-flash';
+const STORAGE_KEY = 'gold_signal_keys_v2';
+
+// Strategy configuration — change these to tune the rules.
+const STRATEGY = {
+  candleInterval: '1h',   // Twelve Data interval for all strategy candles
+  candleCount: 100,       // enough bars for SMA50 + RSI14 + swing detection warmup
+  smaFast: 20,
+  smaSlow: 50,
+  rsiPeriod: 14,
+  atrPeriod: 14,
+  rsiOverbought: 70,
+  rsiOversold: 30,
+  minCrossoverPct: 0.03,     // ignore SMA crossovers smaller than this (% of price)
+  swingLeftRight: 3,         // bars on each side to confirm a swing high/low (SMC/ICT)
+  msnrSwingLeftRight: 2,     // looser swing detection for building S/R clusters
+  msnrClusterPct: 0.15,      // % distance within which two pivots count as the same level
+  msnrProximityPct: 0.15,    // % distance from a level counted as "price is at that level"
+  liquiditySweepLookback: 20 // bars used to find the prior high/low that can be "swept"
+};
+
+let KEYS = {};
+try { KEYS = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch(e) { KEYS = {}; }
+
+let currentPrice = null;
+let currentChangePct = null;
+let priceRefreshTimer = null;
+let latestNewsForAnalysis = [];
+let candleCache = { fetchedAt: 0, closes: [], highs: [], lows: [] };
+
+// ─── Telegram WebApp init ───────────────────────
+if (window.Telegram && window.Telegram.WebApp) {
+  const tg = window.Telegram.WebApp;
+  tg.ready();
+  tg.expand();
+  document.body.style.background = tg.themeParams?.bg_color || '#0A0A0F';
+}
+
+function hasAllKeys() {
+  return !!(KEYS.gemini && KEYS.twelvedata && KEYS.marketaux);
+}
+
+// ─── API key modal control ──────────────────────
+function openKeyModal(isEditing) {
+  document.getElementById('keyError').classList.remove('visible');
+  document.getElementById('geminiKeyInput').value = '';
+  document.getElementById('twelveKeyInput').value = '';
+  document.getElementById('marketauxKeyInput').value = '';
+
+  document.getElementById('geminiKeyInput').placeholder = KEYS.gemini ? '•••• saved — leave blank to keep' : 'AIza...';
+  document.getElementById('twelveKeyInput').placeholder = KEYS.twelvedata ? '•••• saved — leave blank to keep' : 'Your Twelve Data key';
+  document.getElementById('marketauxKeyInput').placeholder = KEYS.marketaux ? '•••• saved — leave blank to keep' : 'Your Marketaux key';
+
+  document.getElementById('geminiKeyInput').classList.toggle('has-saved-value', !!KEYS.gemini);
+  document.getElementById('twelveKeyInput').classList.toggle('has-saved-value', !!KEYS.twelvedata);
+  document.getElementById('marketauxKeyInput').classList.toggle('has-saved-value', !!KEYS.marketaux);
+
+  document.getElementById('keyCancelBtn').classList.toggle('visible', !!isEditing && hasAllKeys());
+  document.getElementById('keyOverlay').classList.add('visible');
+}
+
+function closeKeyModal() {
+  document.getElementById('keyOverlay').classList.remove('visible');
+}
+
+function showKeyError(msg) {
+  const el = document.getElementById('keyError');
+  el.textContent = msg;
+  el.classList.add('visible');
+}
+
+document.querySelectorAll('.key-toggle-visibility').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const input = document.getElementById(btn.dataset.target);
+    if (input.type === 'password') { input.type = 'text'; btn.textContent = '🙈'; }
+    else { input.type = 'password'; btn.textContent = '👁️'; }
+  });
+});
+
+function saveApiKeys() {
+  const g = document.getElementById('geminiKeyInput').value.trim();
+  const t = document.getElementById('twelveKeyInput').value.trim();
+  const m = document.getElementById('marketauxKeyInput').value.trim();
+
+  const next = { ...KEYS };
+  if (g) next.gemini = g;
+  if (t) next.twelvedata = t;
+  if (m) next.marketaux = m;
+
+  if (!next.gemini || !next.twelvedata || !next.marketaux) {
+    showKeyError('Please provide all three keys to continue (leave a field blank only if it was already saved).');
+    return;
+  }
+
+  KEYS = next;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(KEYS));
+  closeKeyModal();
+  startApp();
+}
+
+function invalidateKey(field, providerLabel, message) {
+  delete KEYS[field];
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(KEYS));
+  showError(`${providerLabel} key was rejected${message ? ': ' + message : ''}. Please re-enter it.`);
+  openKeyModal(false);
+}
+
+// Kick things off if all keys are already saved; otherwise onboard.
+if (hasAllKeys()) {
+  startApp();
+} else {
+  openKeyModal(false);
+}
+
+function startApp() {
+  updateLiveBadge(true);
+  fetchLivePrice();
+  fetchNews();
+  if (priceRefreshTimer) clearInterval(priceRefreshTimer);
+  priceRefreshTimer = setInterval(fetchLivePrice, 60000);
+}
+
+function updateLiveBadge(ok) {
+  const badge = document.getElementById('liveBadge');
+  badge.classList.toggle('stale', !ok);
+  document.getElementById('liveBadgeText').textContent = ok ? 'LIVE' : 'OFFLINE';
+}
+
+// ─── Tab switching ───────────────────────────────
+function switchTab(tab) {
+  ['signal', 'news', 'history', 'backtest'].forEach(t => {
+    document.getElementById('tab' + capitalize(t)).classList.toggle('active', t === tab);
+    document.getElementById('nav' + capitalize(t)).classList.toggle('active', t === tab);
+  });
+  if (tab === 'history') renderHistory();
+}
+
+function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+// ─── Signal history (stored locally per device) ──
+const HISTORY_KEY = 'gold_signal_history_v1';
+
+function loadHistory() {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); }
+  catch (e) { return []; }
+}
+
+function saveHistoryEntry(entry) {
+  const history = loadHistory();
+  history.unshift(entry);
+  if (history.length > 30) history.length = 30;
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+}
+
+function clearHistory() {
+  localStorage.removeItem(HISTORY_KEY);
+  renderHistory();
+}
+
+function renderHistory() {
+  const list = document.getElementById('historyList');
+  const clearBtn = document.getElementById('clearHistoryBtn');
+  const history = loadHistory();
+
+  if (!history.length) {
+    list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">No signals yet — run an analysis to start building history</div>';
+    clearBtn.style.display = 'none';
+    return;
+  }
+
+  clearBtn.style.display = 'block';
+  const icons = { BUY: '📈', SELL: '📉', HOLD: '⏸️' };
+  const classes = { BUY: 'buy', SELL: 'sell', HOLD: 'hold' };
+
+  list.innerHTML = history.map(h => {
+    const cls = classes[h.signal] || 'hold';
+    const dt = new Date(h.time);
+    const dateLabel = dt.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return `
+    <div class="history-item">
+      <div class="history-left">
+        <div class="history-badge ${cls}">${icons[h.signal] || '⏸️'}</div>
+        <div>
+          <div class="history-signal ${cls}">${escHtml(h.signal)}</div>
+          <div class="history-meta">${escHtml(dateLabel)}</div>
+        </div>
+      </div>
+      <div class="history-right">
+        <div class="history-price">$${Number(h.price).toFixed(2)}</div>
+        <div class="history-conf">${h.confidence}% conf.</div>
+      </div>
+    </div>
+  `;
+  }).join('');
+}
+
+// ─── Session info ───────────────────────────────
+function getSession() {
+  const h = new Date().getUTCHours();
+  if (h >= 22 || h < 8)  return { label: 'ASIA',   color: '#60A5FA' };
+  if (h >= 8  && h < 13) return { label: 'LONDON', color: '#A78BFA' };
+  return                          { label: 'NY',     color: '#34D399' };
+}
+
+// ─── Live price (Twelve Data) ───────────────────
+async function fetchLivePrice() {
+  if (!KEYS.twelvedata) return;
+  const btn = document.getElementById('refreshBtn');
+  btn.classList.add('spinning');
+
+  try {
+    const res = await fetch(`https://api.twelvedata.com/quote?symbol=XAU/USD&apikey=${encodeURIComponent(KEYS.twelvedata)}`);
+    const data = await res.json();
+
+    if (data.status === 'error' || (data.code && data.code >= 400)) {
+      updateLiveBadge(false);
+      if (data.code === 401 || data.code === 403) {
+        invalidateKey('twelvedata', 'Twelve Data', data.message);
+      } else {
+        showError('Twelve Data error: ' + (data.message || 'could not load price'));
+      }
+      return;
+    }
+
+    currentPrice = parseFloat(data.close);
+    currentChangePct = parseFloat(data.percent_change);
+    updateLiveBadge(true);
+    renderPrice();
+  } catch (err) {
+    updateLiveBadge(false);
+    showError('Live price fetch failed: ' + err.message);
+  } finally {
+    btn.classList.remove('spinning');
+  }
+}
+
+function renderPrice() {
+  const display = document.getElementById('livePriceDisplay');
+  display.classList.remove('dim');
+  display.textContent = isNaN(currentPrice) ? '—' : '$' + currentPrice.toFixed(2);
+
+  const changeEl = document.getElementById('changeDisplay');
+  if (!isNaN(currentChangePct)) {
+    const sign = currentChangePct > 0 ? '+' : '';
+    changeEl.textContent = `${sign}${currentChangePct.toFixed(2)}%`;
+    changeEl.className = 'stat-value ' + (currentChangePct > 0 ? 'up' : currentChangePct < 0 ? 'down' : '');
+  }
+
+  const session = getSession();
+  const sessEl = document.getElementById('sessionDisplay');
+  sessEl.textContent = session.label;
+  sessEl.style.color = session.color;
+
+  document.getElementById('updatedTag').textContent = 'updated ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  document.getElementById('analyzeBtn').disabled = isNaN(currentPrice);
+}
+
+// ─── Historical candles (Twelve Data time_series) ─
+// Used only to compute the rule-based strategies below.
+async function fetchCandles(force) {
+  const FIVE_MIN = 5 * 60 * 1000;
+  if (!force && Date.now() - candleCache.fetchedAt < FIVE_MIN && candleCache.closes.length) {
+    return candleCache;
+  }
+
+  const url = `https://api.twelvedata.com/time_series?symbol=XAU/USD&interval=${STRATEGY.candleInterval}&outputsize=${STRATEGY.candleCount}&apikey=${encodeURIComponent(KEYS.twelvedata)}`;
+  const res = await fetch(url);
+  const data = await res.json();
+
+  if (data.status === 'error' || (data.code && data.code >= 400)) {
+    if (data.code === 401 || data.code === 403) {
+      invalidateKey('twelvedata', 'Twelve Data', data.message);
+    }
+    throw new Error(data.message || 'Could not load historical candles for the strategies.');
+  }
+
+  const values = data.values || [];
+  if (values.length < STRATEGY.smaSlow + 1) {
+    throw new Error(`Not enough historical candles (${values.length}) to run the strategies on the free plan — try a longer interval.`);
+  }
+
+  // Twelve Data returns newest-first; flip to oldest-first for indicator math.
+  const asc = values.slice().reverse();
+  candleCache = {
+    fetchedAt: Date.now(),
+    closes: asc.map(v => parseFloat(v.close)),
+    highs: asc.map(v => parseFloat(v.high)),
+    lows: asc.map(v => parseFloat(v.low))
+  };
+  return candleCache;
+}
+
+// ─── Shared indicator math ───────────────────────
+function sma(valuesAsc, period) {
+  if (valuesAsc.length < period) return null;
+  const slice = valuesAsc.slice(-period);
+  return slice.reduce((a, b) => a + b, 0) / period;
+}
+
+function rsi(closesAsc, period) {
+  if (closesAsc.length < period + 1) return null;
+  let gains = 0, losses = 0;
+  for (let i = 1; i <= period; i++) {
+    const diff = closesAsc[i] - closesAsc[i - 1];
+    if (diff >= 0) gains += diff; else losses -= diff;
+  }
+  let avgGain = gains / period, avgLoss = losses / period;
+  for (let i = period + 1; i < closesAsc.length; i++) {
+    const diff = closesAsc[i] - closesAsc[i - 1];
+    const gain = diff > 0 ? diff : 0;
+    const loss = diff < 0 ? -diff : 0;
+    avgGain = (avgGain * (period - 1) + gain) / period;
+    avgLoss = (avgLoss * (period - 1) + loss) / period;
+  }
+  if (avgLoss === 0) return 100;
+  const rs = avgGain / avgLoss;
+  return 100 - (100 / (1 + rs));
+}
+
+function atr(highsAsc, lowsAsc, closesAsc, period) {
+  if (highsAsc.length < period + 1) return null;
+  const trs = [];
+  for (let i = 1; i < highsAsc.length; i++) {
+    const highLow = highsAsc[i] - lowsAsc[i];
+    const highClose = Math.abs(highsAsc[i] - closesAsc[i - 1]);
+    const lowClose = Math.abs(lowsAsc[i] - closesAsc[i - 1]);
+    trs.push(Math.max(highLow, highClose, lowClose));
+  }
+  if (trs.length < period) return null;
+  let val = trs.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  for (let i = period; i < trs.length; i++) {
+    val = (val * (period - 1) + trs[i]) / period;
+  }
+  return val;
+}
+
+// Confirmed swing highs/lows: a bar whose high (low) is the max (min) of
+// `left` bars before it and `right` bars after it. Used by SMC and MSNR.
+function findSwingHighs(highs, left, right) {
+  const points = [];
+  for (let i = left; i < highs.length - right; i++) {
+    let isHigh = true;
+    for (let j = i - left; j < i; j++) { if (highs[j] >= highs[i]) { isHigh = false; break; } }
+    if (isHigh) for (let j = i + 1; j <= i + right; j++) { if (highs[j] >= highs[i]) { isHigh = false; break; } }
+    if (isHigh) points.push({ index: i, price: highs[i] });
+  }
+  return points;
+}
+
+function findSwingLows(lows, left, right) {
+  const points = [];
+  for (let i = left; i < lows.length - right; i++) {
+    let isLow = true;
+    for (let j = i - left; j < i; j++) { if (lows[j] <= lows[i]) { isLow = false; break; } }
+    if (isLow) for (let j = i + 1; j <= i + right; j++) { if (lows[j] <= lows[i]) { isLow = false; break; } }
+    if (isLow) points.push({ index: i, price: lows[i] });
+  }
+  return points;
+}
+
+// ─── Strategy 1: SMA/RSI Trend ───────────────────
+// BUY  = SMA20 meaningfully above SMA50 AND RSI14 not overbought
+// SELL = SMA20 meaningfully below SMA50 AND RSI14 not oversold
+function computeSmaRsi(candles) {
+  const { closes, highs, lows } = candles;
+  const smaFast = sma(closes, STRATEGY.smaFast);
+  const smaSlow = sma(closes, STRATEGY.smaSlow);
+  const rsiVal = rsi(closes, STRATEGY.rsiPeriod);
+  const atrVal = atr(highs, lows, closes, STRATEGY.atrPeriod);
+
+  if ([smaFast, smaSlow, rsiVal, atrVal].some(v => v == null || isNaN(v))) {
+    return { verdict: 'HOLD', confidence: 35, detail: 'Not enough candle history yet for SMA/RSI.' };
+  }
+
+  const crossPct = ((smaFast - smaSlow) / smaSlow) * 100;
+  let verdict = 'HOLD';
+  if (crossPct > STRATEGY.minCrossoverPct && rsiVal < STRATEGY.rsiOverbought) verdict = 'BUY';
+  else if (crossPct < -STRATEGY.minCrossoverPct && rsiVal > STRATEGY.rsiOversold) verdict = 'SELL';
+
+  let confidence;
+  if (verdict === 'HOLD') {
+    confidence = Math.round(Math.min(60, 40 + Math.abs(crossPct) * 4));
+  } else {
+    const trendStrength = Math.min(Math.abs(crossPct) * 8, 20);
+    const rsiBias = verdict === 'BUY'
+      ? Math.max(0, STRATEGY.rsiOverbought - rsiVal) * 0.3
+      : Math.max(0, rsiVal - STRATEGY.rsiOversold) * 0.3;
+    confidence = Math.round(Math.min(90, 55 + trendStrength + rsiBias));
+  }
+
+  const detail = `SMA${STRATEGY.smaFast} $${smaFast.toFixed(2)} vs SMA${STRATEGY.smaSlow} $${smaSlow.toFixed(2)} (${crossPct >= 0 ? '+' : ''}${crossPct.toFixed(2)}%), RSI14 ${rsiVal.toFixed(1)}`;
+  return { verdict, confidence, detail, smaFast, smaSlow, rsiVal, atrVal, crossPct };
+}
+
+// ─── Strategy 2: SMC (market structure) ──────────
+// Bullish structure = higher swing high + higher swing low, confirmed by a
+// close breaking above the most recent swing high (break of structure).
+// Bearish structure = mirror image.
+function computeSMC(candles) {
+  const { highs, lows, closes } = candles;
+  const lr = STRATEGY.swingLeftRight;
+  const swingHighs = findSwingHighs(highs, lr, lr);
+  const swingLows = findSwingLows(lows, lr, lr);
+
+  if (swingHighs.length < 2 || swingLows.length < 2) {
+    return { verdict: 'HOLD', confidence: 35, detail: 'Not enough confirmed swing points yet to read market structure.' };
+  }
+
+  const [prevHigh, lastHigh] = swingHighs.slice(-2);
+  const [prevLow, lastLow] = swingLows.slice(-2);
+  const higherHigh = lastHigh.price > prevHigh.price;
+  const higherLow = lastLow.price > prevLow.price;
+  const lowerHigh = lastHigh.price < prevHigh.price;
+  const lowerLow = lastLow.price < prevLow.price;
+  const lastClose = closes[closes.length - 1];
+
+  let verdict = 'HOLD', detail;
+  if (higherHigh && higherLow && lastClose > lastHigh.price) {
+    verdict = 'BUY';
+    detail = `Bullish structure (higher high + higher low), close broke above the last swing high at $${lastHigh.price.toFixed(2)}`;
+  } else if (lowerHigh && lowerLow && lastClose < lastLow.price) {
+    verdict = 'SELL';
+    detail = `Bearish structure (lower high + lower low), close broke below the last swing low at $${lastLow.price.toFixed(2)}`;
+  } else {
+    detail = `No confirmed break of structure — last swing high $${lastHigh.price.toFixed(2)}, last swing low $${lastLow.price.toFixed(2)}`;
+  }
+
+  const confidence = verdict === 'HOLD' ? 40 : 65;
+  return { verdict, confidence, detail, lastSwingHigh: lastHigh.price, lastSwingLow: lastLow.price };
+}
+
+// ─── Strategy 3: ICT (liquidity sweep + fair value gap) ──
+// A liquidity sweep = a wick pokes beyond a prior high/low then closes back
+// inside it (a stop-hunt). Combined with an unfilled fair value gap (a 3-bar
+// imbalance) in the same direction, that's the ICT-style reversal signal.
+function computeICT(candles) {
+  const { highs, lows, closes } = candles;
+  const n = closes.length;
+  const lookback = STRATEGY.liquiditySweepLookback;
+  if (n < lookback + 5) {
+    return { verdict: 'HOLD', confidence: 35, detail: 'Not enough candle history yet for liquidity/FVG analysis.' };
+  }
+
+  const windowStart = Math.max(0, n - lookback - 3);
+  const priorHigh = Math.max(...highs.slice(windowStart, n - 3));
+  const priorLow = Math.min(...lows.slice(windowStart, n - 3));
+
+  const recentHighs = highs.slice(n - 3);
+  const recentLows = lows.slice(n - 3);
+  const recentCloses = closes.slice(n - 3);
+
+  const sweptHigh = recentHighs.some((h, i) => h > priorHigh && recentCloses[i] < priorHigh);
+  const sweptLow = recentLows.some((l, i) => l < priorLow && recentCloses[i] > priorLow);
+
+  let bullishFVG = null, bearishFVG = null;
+  for (let i = Math.max(1, n - 10); i < n - 1; i++) {
+    if (lows[i + 1] > highs[i - 1]) bullishFVG = { bottom: highs[i - 1], top: lows[i + 1] };
+    if (highs[i + 1] < lows[i - 1]) bearishFVG = { bottom: highs[i + 1], top: lows[i - 1] };
+  }
+
+  const lastClose = closes[n - 1];
+  let verdict = 'HOLD', detail;
+  if (sweptLow && bullishFVG && lastClose > bullishFVG.bottom) {
+    verdict = 'BUY';
+    detail = `Liquidity swept below $${priorLow.toFixed(2)} then reclaimed, with an unfilled bullish FVG near $${bullishFVG.bottom.toFixed(2)}–$${bullishFVG.top.toFixed(2)}`;
+  } else if (sweptHigh && bearishFVG && lastClose < bearishFVG.top) {
+    verdict = 'SELL';
+    detail = `Liquidity swept above $${priorHigh.toFixed(2)} then rejected, with an unfilled bearish FVG near $${bearishFVG.bottom.toFixed(2)}–$${bearishFVG.top.toFixed(2)}`;
+  } else if (sweptLow) {
+    detail = `Liquidity swept below $${priorLow.toFixed(2)} but no confirming FVG yet`;
+  } else if (sweptHigh) {
+    detail = `Liquidity swept above $${priorHigh.toFixed(2)} but no confirming FVG yet`;
+  } else {
+    detail = 'No recent liquidity sweep or fair value gap detected';
+  }
+
+  const confidence = verdict === 'HOLD' ? 40 : 65;
+  return { verdict, confidence, detail };
+}
+
+// ─── Strategy 4: MSNR (multi support/resistance) ──
+// Cluster confirmed swing highs/lows that sit within a small % of each other
+// into merged S/R levels; a level touched 2+ times counts as meaningful.
+// BUY if price sits on a support cluster, SELL if on a resistance cluster.
+function computeMSNR(candles, livePrice) {
+  const { highs, lows } = candles;
+  const lr = STRATEGY.msnrSwingLeftRight;
+  const swingHighs = findSwingHighs(highs, lr, lr).map(p => p.price);
+  const swingLows = findSwingLows(lows, lr, lr).map(p => p.price);
+  const allLevels = swingHighs.concat(swingLows);
+
+  if (allLevels.length < 3) {
+    return { verdict: 'HOLD', confidence: 35, detail: 'Not enough pivots yet to build support/resistance clusters.' };
+  }
+
+  const sorted = allLevels.slice().sort((a, b) => a - b);
+  const clusters = [];
+  sorted.forEach(lvl => {
+    const last = clusters[clusters.length - 1];
+    if (last && Math.abs(lvl - last.avg) / last.avg * 100 < STRATEGY.msnrClusterPct) {
+      last.sum += lvl; last.count++; last.avg = last.sum / last.count;
+    } else {
+      clusters.push({ sum: lvl, count: 1, avg: lvl });
+    }
+  });
+
+  let levels = clusters.filter(c => c.count >= 2).map(c => c.avg);
+  if (!levels.length) levels = clusters.map(c => c.avg); // fallback if nothing repeated yet
+
+  const resistances = levels.filter(l => l > livePrice).sort((a, b) => a - b);
+  const supports = levels.filter(l => l < livePrice).sort((a, b) => b - a);
+  const nearestResistance = resistances[0];
+  const nearestSupport = supports[0];
+
+  let verdict = 'HOLD', detail;
+  if (nearestSupport && Math.abs(livePrice - nearestSupport) / nearestSupport * 100 < STRATEGY.msnrProximityPct) {
+    verdict = 'BUY';
+    detail = `Price is sitting on a support cluster near $${nearestSupport.toFixed(2)} (built from ${levels.length} clustered levels)`;
+  } else if (nearestResistance && Math.abs(livePrice - nearestResistance) / nearestResistance * 100 < STRATEGY.msnrProximityPct) {
+    verdict = 'SELL';
+    detail = `Price is sitting on a resistance cluster near $${nearestResistance.toFixed(2)} (built from ${levels.length} clustered levels)`;
+  } else {
+    detail = `Price is between support ($${nearestSupport ? nearestSupport.toFixed(2) : 'n/a'}) and resistance ($${nearestResistance ? nearestResistance.toFixed(2) : 'n/a'}), not at a level`;
+  }
+
+  const confidence = verdict === 'HOLD' ? 40 : 60;
+  return { verdict, confidence, detail, nearestSupport, nearestResistance };
+}
+
+// ─── Confluence: combine all four — signal fires only on full agreement ──
+function computeConfluence(candles, livePrice) {
+  const smaRsi = computeSmaRsi(candles);
+  const smc = computeSMC(candles);
+  const ict = computeICT(candles);
+  const msnr = computeMSNR(candles, livePrice);
+
+  const breakdown = [
+    { name: 'SMA/RSI Trend',        verdict: smaRsi.verdict, detail: smaRsi.detail },
+    { name: 'SMC (Structure)',      verdict: smc.verdict,    detail: smc.detail },
+    { name: 'ICT (Liquidity/FVG)',  verdict: ict.verdict,    detail: ict.detail },
+    { name: 'MSNR (S/R Levels)',    verdict: msnr.verdict,   detail: msnr.detail }
+  ];
+
+  const verdicts = breakdown.map(b => b.verdict);
+  let final = 'HOLD';
+  if (verdicts.every(v => v === 'BUY')) final = 'BUY';
+  else if (verdicts.every(v => v === 'SELL')) final = 'SELL';
+
+  let confidence;
+  if (final !== 'HOLD') {
+    const confs = [smaRsi.confidence, smc.confidence, ict.confidence, msnr.confidence];
+    confidence = Math.round(confs.reduce((a, b) => a + b, 0) / confs.length);
+  } else {
+    const buyCount = verdicts.filter(v => v === 'BUY').length;
+    const sellCount = verdicts.filter(v => v === 'SELL').length;
+    confidence = Math.round(30 + Math.max(buyCount, sellCount) * 8);
+  }
+
+  const entry = livePrice;
+  const atrVal = smaRsi.atrVal || (entry * 0.004); // small fallback if ATR unavailable
+  let tp, sl;
+  if (final === 'BUY') {
+    tp = (msnr.nearestResistance && msnr.nearestResistance > entry) ? msnr.nearestResistance : entry + 2 * atrVal;
+    sl = entry - atrVal;
+  } else if (final === 'SELL') {
+    tp = (msnr.nearestSupport && msnr.nearestSupport < entry) ? msnr.nearestSupport : entry - 2 * atrVal;
+    sl = entry + atrVal;
+  } else {
+    tp = entry + atrVal * 0.5;
+    sl = entry - atrVal * 0.5;
+  }
+
+  return { final, confidence, entry, tp, sl, breakdown, smaRsi, smc, ict, msnr };
+}
+
+// ════════════════════════════════════════════════
+//  BACKTEST ENGINE
+//  Walks forward bar-by-bar through historical candles,
+//  calling the exact same computeConfluence() used live.
+//  At bar i, only closes/highs/lows[0..i] are ever passed
+//  in, so no future data can leak into a past signal.
+//  When a BUY/SELL fires and no trade is already open, a
+//  position is opened at that bar's close; it is closed on
+//  whichever comes first: the TP touch, the SL touch, or a
+//  max holding window (to avoid trades left open forever).
+// ════════════════════════════════════════════════
+const BACKTEST = {
+  maxHoldBars: 120,          // force-close a trade after this many bars if TP/SL never hit
+  warmupBars: STRATEGY.smaSlow + STRATEGY.swingLeftRight + 5 // bars needed before the rule can produce a signal
+};
+
+let backtestCandleCache = { fetchedAt: 0, count: 0, closes: [], highs: [], lows: [] };
+
+async function fetchBacktestCandles(count) {
+  const TEN_MIN = 10 * 60 * 1000;
+  if (backtestCandleCache.count === count && Date.now() - backtestCandleCache.fetchedAt < TEN_MIN && backtestCandleCache.closes.length) {
+    return backtestCandleCache;
+  }
+
+  const url = `https://api.twelvedata.com/time_series?symbol=XAU/USD&interval=${STRATEGY.candleInterval}&outputsize=${count}&apikey=${encodeURIComponent(KEYS.twelvedata)}`;
+  const res = await fetch(url);
+  const data = await res.json();
+
+  if (data.status === 'error' || (data.code && data.code >= 400)) {
+    if (data.code === 401 || data.code === 403) {
+      invalidateKey('twelvedata', 'Twelve Data', data.message);
+    }
+    throw new Error(data.message || 'Could not load historical candles for the backtest.');
+  }
+
+  const values = data.values || [];
+  if (values.length < BACKTEST.warmupBars + 10) {
+    throw new Error(`Twelve Data only returned ${values.length} candles — not enough to backtest. Try a smaller candle count.`);
+  }
+
+  const asc = values.slice().reverse();
+  backtestCandleCache = {
+    fetchedAt: Date.now(),
+    count,
+    closes: asc.map(v => parseFloat(v.close)),
+    highs: asc.map(v => parseFloat(v.high)),
+    lows: asc.map(v => parseFloat(v.low))
+  };
+  return backtestCandleCache;
+}
+
+// Runs the walk-forward simulation and returns trade list + summary stats.
+function simulateBacktest(all) {
+  const { closes, highs, lows } = all;
+  const n = closes.length;
+  const trades = [];
+  let openTrade = null;
+
+  for (let i = BACKTEST.warmupBars; i < n; i++) {
+    const slice = { closes: closes.slice(0, i + 1), highs: highs.slice(0, i + 1), lows: lows.slice(0, i + 1) };
+    const price = closes[i];
+
+    // Manage an open trade first: check if this bar's range touches TP or SL.
+    if (openTrade) {
+      const barsHeld = i - openTrade.openIndex;
+      const hitTp = openTrade.direction === 'BUY' ? highs[i] >= openTrade.tp : lows[i] <= openTrade.tp;
+      const hitSl = openTrade.direction === 'BUY' ? lows[i] <= openTrade.sl : highs[i] >= openTrade.sl;
+
+      if (hitTp || hitSl) {
+        // If both touched in the same bar we can't know which came first from
+        // OHLC alone — conservatively count it as the stop loss.
+        const outcome = hitSl ? 'SL' : 'TP';
+        const exitPrice = outcome === 'TP' ? openTrade.tp : openTrade.sl;
+        closeTrade(openTrade, exitPrice, outcome, i);
+        trades.push(openTrade);
+        openTrade = null;
+      } else if (barsHeld >= BACKTEST.maxHoldBars) {
+        closeTrade(openTrade, price, 'EXPIRED', i);
+        trades.push(openTrade);
+        openTrade = null;
+      }
+    }
+
+    // Only look for a new signal when flat (no pyramiding, one trade at a time).
+    if (!openTrade) {
+      const result = computeConfluence(slice, price);
+      if (result.final === 'BUY' || result.final === 'SELL') {
+        openTrade = {
+          direction: result.final,
+          entry: price,
+          tp: result.tp,
+          sl: result.sl,
+          openIndex: i,
+          confidence: result.confidence
+        };
+      }
+    }
+  }
+
+  // Close anything still open at the end of the sample at the last price.
+  if (openTrade) {
+    closeTrade(openTrade, closes[n - 1], 'EXPIRED', n - 1);
+    trades.push(openTrade);
+  }
+
+  return trades;
+}
+
+function closeTrade(trade, exitPrice, outcome, closeIndex) {
+  const risk = Math.abs(trade.entry - trade.sl);
+  const pnl = trade.direction === 'BUY' ? exitPrice - trade.entry : trade.entry - exitPrice;
+  trade.exitPrice = exitPrice;
+  trade.outcome = outcome;
+  trade.closeIndex = closeIndex;
+  trade.rMultiple = risk > 0 ? pnl / risk : 0;
+}
+
+function summarizeBacktest(trades) {
+  const total = trades.length;
+  const wins = trades.filter(t => t.rMultiple > 0);
+  const losses = trades.filter(t => t.rMultiple <= 0);
+  const winRate = total ? (wins.length / total) * 100 : 0;
+  const grossWin = wins.reduce((s, t) => s + t.rMultiple, 0);
+  const grossLoss = Math.abs(losses.reduce((s, t) => s + t.rMultiple, 0));
+  const profitFactor = grossLoss > 0 ? grossWin / grossLoss : (grossWin > 0 ? Infinity : 0);
+  const netR = trades.reduce((s, t) => s + t.rMultiple, 0);
+  const avgR = total ? netR / total : 0;
+
+  let equity = 0, peak = 0, maxDrawdown = 0;
+  const equityCurve = [0];
+  trades.forEach(t => {
+    equity += t.rMultiple;
+    peak = Math.max(peak, equity);
+    maxDrawdown = Math.max(maxDrawdown, peak - equity);
+    equityCurve.push(equity);
+  });
+
+  return { total, wins: wins.length, losses: losses.length, winRate, profitFactor, netR, avgR, maxDrawdown, equityCurve };
+}
+
+async function runBacktest() {
+  if (!hasAllKeys()) { openKeyModal(false); return; }
+
+  const count = parseInt(document.getElementById('backtestCandleCount').value, 10);
+  const runBtn = document.getElementById('backtestRunBtn');
+  runBtn.disabled = true;
+  document.getElementById('backtestSpinner').style.display = 'block';
+  document.getElementById('backtestBtnText').textContent = 'Running…';
+  hideError();
+
+  try {
+    const candles = await fetchBacktestCandles(count);
+    const trades = simulateBacktest(candles);
+    const stats = summarizeBacktest(trades);
+    renderBacktestResults(stats, trades.length, count);
+  } catch (err) {
+    console.error(err);
+    showError('Backtest failed: ' + err.message);
+  } finally {
+    runBtn.disabled = false;
+    document.getElementById('backtestSpinner').style.display = 'none';
+    document.getElementById('backtestBtnText').textContent = '▶ Run Backtest';
+  }
+}
+
+function renderBacktestResults(stats, tradeCount, candleCount) {
+  document.getElementById('backtestEmpty').style.display = 'none';
+  document.getElementById('backtestResults').style.display = 'block';
+
+  const pf = isFinite(stats.profitFactor) ? stats.profitFactor.toFixed(2) : '∞';
+  const cells = [
+    { label: 'Candles Tested', value: candleCount, cls: '' },
+    { label: 'Total Trades', value: stats.total, cls: '' },
+    { label: 'Win Rate', value: stats.winRate.toFixed(1) + '%', cls: stats.winRate >= 50 ? 'up' : 'down' },
+    { label: 'Profit Factor', value: pf, cls: stats.profitFactor >= 1 ? 'up' : 'down' },
+    { label: 'Avg R / Trade', value: (stats.avgR >= 0 ? '+' : '') + stats.avgR.toFixed(2) + 'R', cls: stats.avgR >= 0 ? 'up' : 'down' },
+    { label: 'Max Drawdown', value: '-' + stats.maxDrawdown.toFixed(2) + 'R', cls: 'down' },
+    { label: 'Net Result', value: (stats.netR >= 0 ? '+' : '') + stats.netR.toFixed(2) + 'R', cls: stats.netR >= 0 ? 'up' : 'down' }
+  ];
+
+  const grid = document.getElementById('backtestStatsGrid');
+  grid.innerHTML = cells.map((c, idx) => `
+    <div class="backtest-stat-cell${idx === cells.length - 1 ? ' wide' : ''}">
+      <div class="backtest-stat-label">${escHtml(c.label)}</div>
+      <div class="backtest-stat-value ${c.cls}">${escHtml(String(c.value))}</div>
+    </div>
+  `).join('');
+
+  drawEquityCurve(stats.equityCurve);
+}
+
+function drawEquityCurve(curve) {
+  const svg = document.getElementById('backtestEquitySvg');
+  if (curve.length < 2) { svg.innerHTML = ''; return; }
+
+  const w = 300, h = 100, pad = 4;
+  const min = Math.min(...curve), max = Math.max(...curve);
+  const range = (max - min) || 1;
+
+  const points = curve.map((v, i) => {
+    const x = pad + (i / (curve.length - 1)) * (w - pad * 2);
+    const y = h - pad - ((v - min) / range) * (h - pad * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+
+  const zeroY = h - pad - ((0 - min) / range) * (h - pad * 2);
+  const lineColor = curve[curve.length - 1] >= 0 ? '#22C55E' : '#EF4444';
+
+  svg.innerHTML = `
+    <line x1="0" y1="${zeroY.toFixed(1)}" x2="${w}" y2="${zeroY.toFixed(1)}" stroke="#2A2A3A" stroke-width="1" stroke-dasharray="3,3" />
+    <polyline points="${points}" fill="none" stroke="${lineColor}" stroke-width="2" />
+  `;
+}
+
+// ─── Real news (Marketaux) ──────────────────────
+async function fetchNews() {
+  if (!KEYS.marketaux) return;
+  const list = document.getElementById('newsList');
+
+  try {
+    const url = `https://api.marketaux.com/v1/news/all?search=gold%20OR%20XAUUSD&language=en&limit=5&filter_entities=true&api_token=${encodeURIComponent(KEYS.marketaux)}`;
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (data.error) {
+      const code = data.error.code;
+      if (code === 'usage_limit_reached' || code === 'invalid_api_key' || res.status === 401 || res.status === 403) {
+        invalidateKey('marketaux', 'Marketaux', data.error.message);
+      } else {
+        showError('Marketaux error: ' + (data.error.message || 'could not load news'));
+      }
+      return;
+    }
+
+    renderNews(data.data || []);
+  } catch (err) {
+    showError('News fetch failed: ' + err.message);
+    list.innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted);font-size:13px;">Could not load news</div>';
+  }
+}
+
+function sentimentFromEntities(entities) {
+  if (!entities || !entities.length) return 'neutral';
+  const scored = entities.filter(e => typeof e.sentiment_score === 'number');
+  if (!scored.length) return 'neutral';
+  const avg = scored.reduce((s, e) => s + e.sentiment_score, 0) / scored.length;
+  if (avg > 0.15) return 'bullish';
+  if (avg < -0.15) return 'bearish';
+  return 'neutral';
+}
+
+function relTime(iso) {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.round(diffMs / 60000);
+  if (mins < 60) return `${Math.max(mins, 1)}m ago`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.round(hrs / 24)}d ago`;
+}
+
+function renderNews(articles) {
+  const list = document.getElementById('newsList');
+  latestNewsForAnalysis = articles.slice(0, 5).map(a => ({
+    headline: a.title,
+    source: a.source,
+    sentiment: sentimentFromEntities(a.entities)
+  }));
+
+  if (!articles.length) {
+    list.innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted);font-size:13px;">No recent gold news found</div>';
+    return;
+  }
+
+  list.innerHTML = articles.map(a => {
+    const sentiment = sentimentFromEntities(a.entities);
+    return `
+    <a class="news-item" href="${escAttr(a.url)}" target="_blank" rel="noopener">
+      <div class="news-meta">
+        <span class="news-source">${escHtml(a.source)}</span>
+        <div class="news-dot"></div>
+        <span class="news-time">${escHtml(relTime(a.published_at))}</span>
+      </div>
+      <div class="news-headline">${escHtml(a.title)}</div>
+      <span class="news-sentiment ${sentiment}">
+        ${sentiment === 'bullish' ? '🟢 Bullish' : sentiment === 'bearish' ? '🔴 Bearish' : '⚪ Neutral'}
+      </span>
+    </a>
+  `;
+  }).join('');
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function fetchGeminiWithRetry(prompt, attempt = 0) {
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(KEYS.gemini)}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.5, maxOutputTokens: 350 }
+      })
+    }
+  );
+
+  if (response.status === 503 && attempt < 2) {
+    document.getElementById('loaderText').textContent = 'Gemini is busy, retrying…';
+    await sleep(1500 * (attempt + 1));
+    return fetchGeminiWithRetry(prompt, attempt + 1);
+  }
+
+  return response;
+}
+
+// Gemini is asked ONLY to explain the already-computed confluence result in
+// plain language — it is explicitly told not to change the signal.
+function fallbackAnalysisText(r) {
+  const lines = r.breakdown.map(b => `${b.name}: ${b.verdict}`).join(', ');
+  if (r.final === 'HOLD') {
+    return `The four systems disagree right now (${lines}), so no trade fires under full-confluence rules — staying HOLD at ${r.confidence}% confidence. (AI commentary unavailable — showing the rule-based breakdown only.)`;
+  }
+  return `All four systems agree (${lines}), producing a ${r.final} signal at ${r.confidence}% confidence. (AI commentary unavailable — showing the rule-based breakdown only.)`;
+}
+
+async function getGeminiCommentary(r) {
+  const newsContext = latestNewsForAnalysis.length
+    ? latestNewsForAnalysis.map(n => `- [${n.sentiment}] ${n.headline} (${n.source})`).join('\n')
+    : 'No recent headlines available.';
+
+  const breakdownText = r.breakdown.map(b => `- ${b.name}: ${b.verdict} — ${b.detail}`).join('\n');
+
+  const prompt = `You are explaining a trading signal to a retail trader. Do NOT change or second-guess the signal below — it was already decided by four independent fixed rules requiring full agreement, not by you. Just explain it in plain language in 2-4 short sentences, noting whether all four rules agree and whether the news context supports it.
+
+Combined signal (already decided, do not change): ${r.final} at ${r.confidence}% confidence
+Entry: $${r.entry.toFixed(2)}, Take Profit: $${r.tp.toFixed(2)}, Stop Loss: $${r.sl.toFixed(2)}
+
+Breakdown of the four rules:
+${breakdownText}
+
+Recent gold news headlines with sentiment:
+${newsContext}
+
+Respond with plain text only (no JSON, no markdown), 2-4 sentences.`;
+
+  try {
+    const response = await fetchGeminiWithRetry(prompt);
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      const status = response.status;
+      if (status === 400 || status === 401 || status === 403) {
+        invalidateKey('gemini', 'Gemini', errData?.error?.message);
+        return fallbackAnalysisText(r);
+      }
+      throw new Error(errData?.error?.message || `HTTP ${status}`);
+    }
+    const data = await response.json();
+    const raw = (data.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('').trim();
+    return raw || fallbackAnalysisText(r);
+  } catch (err) {
+    console.error('Gemini commentary failed, using fallback text:', err);
+    return fallbackAnalysisText(r);
+  }
+}
+
+// ─── Main analysis: rules compute the signal, Gemini only narrates it ─
+async function runAnalysis() {
+  if (!hasAllKeys()) { openKeyModal(false); return; }
+  if (currentPrice == null || isNaN(currentPrice)) { showError('Live price not loaded yet — tap refresh.'); return; }
+
+  hideError();
+  setLoading(true);
+  document.getElementById('loaderText').textContent = 'Checking SMA/RSI, SMC, ICT, MSNR...';
+
+  try {
+    const candles = await fetchCandles(false);
+    const result = computeConfluence(candles, currentPrice);
+
+    document.getElementById('loaderText').textContent = 'Asking Gemini to explain the signal...';
+    const analysisText = await getGeminiCommentary(result);
+
+    renderSignal(result, analysisText);
+
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+      window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+    }
+  } catch (err) {
+    console.error(err);
+    if (err instanceof TypeError) {
+      showError('Could not reach the data provider at all (this is a network/connectivity issue, not your API key). Try switching between WiFi and mobile data, toggle any VPN, then tap Analyze again.');
+    } else {
+      showError('Analysis failed: ' + err.message);
+    }
+  } finally {
+    setLoading(false);
+  }
+}
+
+// ─── Render signal + confluence breakdown ───────
+function renderSignal(r, analysisText) {
+  const sig = r.final;
+  const conf = r.confidence;
+  const icons = { BUY: '📈', SELL: '📉', HOLD: '⏸️' };
+  const classes = { BUY: 'buy', SELL: 'sell', HOLD: 'hold' };
+  const cls = classes[sig] || 'hold';
+
+  document.getElementById('signalBox').classList.add('visible');
+  document.getElementById('signalHeader').className = `signal-header ${cls}`;
+  document.getElementById('signalIcon').className = `signal-icon ${cls}`;
+  document.getElementById('signalIcon').textContent = icons[sig];
+  document.getElementById('signalLabel').className = `signal-label ${cls}`;
+  document.getElementById('signalLabel').textContent = sig;
+
+  const pill = document.getElementById('confidencePill');
+  pill.className = `confidence-pill ${cls}`;
+  pill.textContent = `${conf}% conf.`;
+
+  const list = document.getElementById('confluenceList');
+  list.innerHTML = r.breakdown.map(b => {
+    const bcls = classes[b.verdict] || 'hold';
+    return `
+    <div class="confluence-row">
+      <div class="confluence-top">
+        <div class="confluence-name">${escHtml(b.name)}</div>
+        <div class="confluence-badge ${bcls}">${escHtml(b.verdict)}</div>
+      </div>
+      <div class="confluence-detail">${escHtml(b.detail)}</div>
+    </div>
+  `;
+  }).join('');
+
+  document.getElementById('entryLevel').textContent = '$' + r.entry.toFixed(2);
+  document.getElementById('tpLevel').textContent   = '$' + r.tp.toFixed(2);
+  document.getElementById('slLevel').textContent   = '$' + r.sl.toFixed(2);
+  document.getElementById('analysisText').textContent = analysisText || '';
+
+  saveHistoryEntry({ time: Date.now(), price: r.entry, signal: sig, confidence: conf });
+}
+
+// ─── Helpers ────────────────────────────────────
+function setLoading(on) {
+  document.getElementById('analyzeBtn').disabled = on || currentPrice == null || isNaN(currentPrice);
+  document.getElementById('btnSpinner').style.display = on ? 'block' : 'none';
+  document.getElementById('btnText').textContent = on ? 'Analyzing…' : '⚡ Analyze';
+  document.getElementById('loadingOverlay').classList.toggle('visible', on);
+}
+
+function showError(msg) {
+  const el = document.getElementById('errorMsg');
+  el.textContent = '⚠️ ' + msg;
+  el.classList.add('visible');
+}
+
+function hideError() {
+  document.getElementById('errorMsg').classList.remove('visible');
+}
+
+function escHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])
+  );
+}
+
+function escAttr(s) {
+  return String(s || '#').replace(/"/g, '&quot;');
+}
+</script>
+</body>
+</html>
